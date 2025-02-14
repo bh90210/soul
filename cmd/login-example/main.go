@@ -6,7 +6,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/a-cordier/goose/proto/login"
+	"github.com/bh90210/soul/login"
 )
 
 func main() {
@@ -25,7 +25,8 @@ func main() {
 	res := bufio.NewReader(conn)
 	response := login.Read(res)
 	if response.OK() {
-		success := response.(login.Success)
-		fmt.Println(success.Greet, success.IP, success.Sum)
+		fmt.Println(response.Greet, response.IP, response.Sum)
+	} else {
+		fmt.Println(response.Reason)
 	}
 }

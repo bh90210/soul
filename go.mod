@@ -1,3 +1,3 @@
-module github.com/a-cordier/goose
+module github.com/bh90210/soul
 
-go 1.15
+go 1.24
