@@ -1,4 +1,4 @@
-package login
+package server
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 
@@ -13,16 +14,24 @@ import (
 )
 
 // Code Login.
-const Code soul.UInt = 1
+const LoginCode soul.UInt = 1
+
+// Response is the message we get from the server when trying to login.
+// It can either be a success or a failure.
+type Login struct {
+	Greet string
+	IP    net.IP
+	Sum   string
+}
 
 // Serialize accepts a username and password. It will create a new byte array (buffer)
 // and serialize the username and password into the buffer. It will then calculate
 // the sum of the username and password and append it to the buffer. Finally, it will
 // append the major and minor version of the protocol to the buffer and return the
 // buffer as a byte array.
-func Serialize(username string, password string) []byte {
+func (l Login) Serialize(username string, password string) []byte {
 	buf := new(bytes.Buffer)
-	soul.WriteUInt(buf, Code)
+	soul.WriteUInt(buf, LoginCode)
 
 	binary.Write(buf, binary.LittleEndian, soul.NewString(username))
 	binary.Write(buf, binary.LittleEndian, soul.NewString(password))
@@ -33,36 +42,32 @@ func Serialize(username string, password string) []byte {
 	return soul.Pack(buf.Bytes())
 }
 
-// Response is the message we get from the server when trying to login.
-// It can either be a success or a failure.
-type Response struct {
-	Greet string
-	IP    net.IP
-	Sum   string
-}
-
 // Deserialize accepts a reader (from the TCP connection) and reads the response from the server.
 // It returns a Response struct containing either a Success or a Failure.
 // Consumers of Deserialize must check if the response is OK before proceeding
 // as contents f Response are pointers and can be nil.
-func Deserialize(reader io.Reader) (*Response, error) {
-	soul.ReadUInt(reader) // size
-	soul.ReadUInt(reader) // code 1
+func (l *Login) Deserialize(reader io.Reader) error {
+	soul.ReadUInt(reader)         // size
+	code := soul.ReadUInt(reader) // code 1
+	if code != LoginCode {
+		return errors.Join(soul.ErrMismatchingCodes,
+			fmt.Errorf("expected code %d, got %d", LoginCode, code))
+	}
 
 	success := soul.ReadBool(reader)
 	if !success {
-		return nil, readFailure(reader)
+		return readFailure(reader)
 	}
 
-	return readSuccess(reader), nil
+	l.readSuccess(reader)
+
+	return nil
 }
 
-func readSuccess(reader io.Reader) *Response {
-	greet := soul.ReadString(reader)
-	ip := soul.ReadIP(soul.ReadUInt(reader))
-	sum := soul.ReadString(reader)
-
-	return &Response{greet, ip, sum}
+func (l *Login) readSuccess(reader io.Reader) {
+	l.Greet = soul.ReadString(reader)
+	l.IP = soul.ReadIP(soul.ReadUInt(reader))
+	l.Sum = soul.ReadString(reader)
 }
 
 // ErrLoginFailureInvalidUsername username is longer than 30 characters or contains invalid characters (non-ASCII)

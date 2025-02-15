@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"log"
 	"net"
 )
 
@@ -28,12 +27,12 @@ type (
 type ConnectionType string
 
 const (
-	// P connection type: Peer To Peer.
-	P ConnectionType = "P"
-	// F connection type: File Transfer.
-	F ConnectionType = "F"
-	// D connection type: Distributed Network.
-	D ConnectionType = "D"
+	// Peer connection type: Peer To Peer.
+	Peer ConnectionType = "P"
+	// File connection type: File Transfer.
+	File ConnectionType = "F"
+	// Distributed connection type: Distributed Network.
+	Distributed ConnectionType = "D"
 )
 
 // UserStatusCode represents the status of a user.
@@ -71,6 +70,8 @@ const (
 	// UploadToPeer transfer direction.
 	UploadToPeer
 )
+
+var ErrMismatchingCodes = errors.New("Mismatching codes")
 
 var ErrTransferRejectionBanned = errors.New("Banned")
 
@@ -160,35 +161,4 @@ func ReadIP(val UInt) net.IP {
 	binary.BigEndian.PutUint32(ip, uint32(val))
 
 	return ip
-}
-
-func Read(connection io.Reader) (io.Reader, UInt, UInt) {
-	messageCopy := new(bytes.Buffer)
-	message := io.TeeReader(connection, messageCopy)
-
-	// Read the messageSize of the message.
-	packetSize := ReadUInt(message)
-
-	// Read the code.
-	code := ReadUInt(message)
-
-	// The size of the actual message needs -4 to account for the packetSize and code.
-	messageSize := packetSize - 4
-
-	sizeSoFar := 0
-	for {
-		p := make([]byte, int(messageSize)-sizeSoFar)
-		n, err := message.Read(p)
-		if err != nil {
-			log.Fatal("Read error", err)
-		}
-
-		sizeSoFar += n
-
-		if sizeSoFar == int(messageSize) {
-			break
-		}
-	}
-
-	return messageCopy, packetSize, code
 }

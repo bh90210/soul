@@ -1,4 +1,4 @@
-package setwaitport
+package server
 
 import (
 	"encoding/hex"
@@ -6,7 +6,9 @@ import (
 )
 
 func TestWritePort(t *testing.T) {
-	having := hex.EncodeToString(Serialize(2234))
+	swp := new(SetWaitPort)
+	v, _ := swp.Serialize(2234)
+	having := hex.EncodeToString(v)
 	expecting := "0400000002000000"
 	if having != expecting {
 		t.Fail()
