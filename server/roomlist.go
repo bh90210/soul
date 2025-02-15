@@ -24,76 +24,140 @@ type Room struct {
 }
 
 func (r *RoomList) Deserialize(reader io.Reader) error {
-	soul.ReadUInt(reader)         // size
-	code := soul.ReadUInt(reader) // code 64
+	_, err := soul.ReadUInt(reader) // size
+	if err != nil {
+		return err
+	}
+
+	code, err := soul.ReadUInt(reader) // code 64
+	if err != nil {
+		return err
+	}
+
 	if code != RoomListCode {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", RoomListCode, code))
 	}
 
 	// Public room.
-	numberOfRooms := soul.ReadUInt(reader)
+	numberOfRooms, err := soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
 
 	// Iterate over the number of rooms and read the room names.
 	for i := 0; i < int(numberOfRooms); i++ {
+		name, err := soul.ReadString(reader)
+		if err != nil {
+			return err
+		}
+
 		r.Rooms = append(r.Rooms, Room{
-			Name: soul.ReadString(reader),
+			Name: name,
 		})
 	}
 
 	for i := range r.Rooms {
-		r.Rooms[i].Users = int(soul.ReadUInt(reader))
+		users, err := soul.ReadUInt(reader)
+		if err != nil {
+			return err
+		}
+
+		r.Rooms[i].Users = int(users)
 	}
 
 	// Owned private rooms.
-	numberOfPrivateRooms := soul.ReadUInt(reader)
+	numberOfPrivateRooms, err := soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
 
 	ownedPrivateRooms := make([]Room, 0)
 	for i := 0; i < int(numberOfPrivateRooms); i++ {
+		name, err := soul.ReadString(reader)
+		if err != nil {
+			return err
+		}
+
 		ownedPrivateRooms = append(ownedPrivateRooms, Room{
-			Name:    soul.ReadString(reader),
+			Name:    name,
 			Private: true,
 			Owned:   true,
 		})
 	}
 
 	for i := range ownedPrivateRooms {
-		ownedPrivateRooms[i].Users = int(soul.ReadUInt(reader))
+		no, err := soul.ReadUInt(reader)
+		if err != nil {
+			return err
+		}
+
+		ownedPrivateRooms[i].Users = int(no)
 	}
 
 	r.Rooms = append(r.Rooms, ownedPrivateRooms...)
 
 	// Not owned private rooms.
-	numberOFNotOwnedPrivateRooms := soul.ReadUInt(reader)
+	no, err := soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
+
+	numberOFNotOwnedPrivateRooms := no
 
 	notOwnedPrivateRooms := make([]Room, 0)
 	for i := 0; i < int(numberOFNotOwnedPrivateRooms); i++ {
+		name, err := soul.ReadString(reader)
+		if err != nil {
+			return err
+		}
+
 		notOwnedPrivateRooms = append(notOwnedPrivateRooms, Room{
-			Name:    soul.ReadString(reader),
+			Name:    name,
 			Private: true,
 		})
 	}
 
 	for i := range notOwnedPrivateRooms {
-		notOwnedPrivateRooms[i].Users = int(soul.ReadUInt(reader))
+		no, err := soul.ReadUInt(reader)
+		if err != nil {
+			return err
+		}
+
+		notOwnedPrivateRooms[i].Users = int(no)
 	}
 
 	r.Rooms = append(r.Rooms, ownedPrivateRooms...)
 
 	// Operated private rooms.
-	numberOfOperatedPrivateRooms := soul.ReadUInt(reader)
+	no, err = soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
+
+	numberOfOperatedPrivateRooms := no
 
 	operatedPrivateRooms := make([]Room, 0)
 	for i := 0; i < int(numberOfOperatedPrivateRooms); i++ {
+		name, err := soul.ReadString(reader)
+		if err != nil {
+			return err
+		}
+
 		operatedPrivateRooms = append(operatedPrivateRooms, Room{
-			Name:     soul.ReadString(reader),
+			Name:     name,
 			Private:  true,
 			Operated: true,
 		})
 	}
 
 	for i := range operatedPrivateRooms {
-		operatedPrivateRooms[i].Users = int(soul.ReadUInt(reader))
+		no, err := soul.ReadUInt(reader)
+		if err != nil {
+			return err
+		}
+
+		operatedPrivateRooms[i].Users = int(no)
 	}
 
 	r.Rooms = append(r.Rooms, ownedPrivateRooms...)

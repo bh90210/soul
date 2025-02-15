@@ -16,17 +16,31 @@ type ExcludedSearchPhrases struct {
 }
 
 func (e *ExcludedSearchPhrases) Deserialize(reader io.Reader) error {
-	soul.ReadUInt(reader)         // size
-	code := soul.ReadUInt(reader) // code 160
+	_, err := soul.ReadUInt(reader) // size
+	if err != nil {
+		return err
+	}
+
+	code, err := soul.ReadUInt(reader) // code 160
+	if err != nil {
+		return err
+	}
+
 	if code != ExcludedSearchPhrasesCode {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", ExcludedSearchPhrasesCode, code))
-
 	}
 
-	numberOfPhrases := soul.ReadUInt(reader)
+	numberOfPhrases, err := soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < int(numberOfPhrases); i++ {
-		phrase := soul.ReadString(reader)
+		phrase, err := soul.ReadString(reader)
+		if err != nil {
+			return err
+		}
 
 		e.Phrases = append(e.Phrases, phrase)
 	}

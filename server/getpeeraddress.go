@@ -25,30 +25,66 @@ type GetPeerAddress struct {
 // Serialize accepts a username and returns a serialized byte array.
 func (g GetPeerAddress) Serialize(username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	soul.WriteUInt(buf, GetPeerAddressCode)
-
-	err := binary.Write(buf, binary.LittleEndian, soul.NewString(username))
+	err := soul.WriteUInt(buf, GetPeerAddressCode)
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes()), nil
+	u, err := soul.NewString(username)
+	if err != nil {
+		return nil, err
+	}
+
+	err = binary.Write(buf, binary.LittleEndian, u)
+	if err != nil {
+		return nil, err
+	}
+
+	return soul.Pack(buf.Bytes())
 }
 
 func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
-	soul.ReadUInt(reader)         // size
-	code := soul.ReadUInt(reader) // code 3
+	_, err := soul.ReadUInt(reader) // size
+	if err != nil {
+		return err
+	}
+
+	code, err := soul.ReadUInt(reader) // code 3
+	if err != nil {
+		return err
+	}
+
 	if code != GetPeerAddressCode {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", GetPeerAddressCode, code))
-
 	}
 
-	g.Username = soul.ReadString(reader)
-	g.IP = soul.ReadIP(soul.ReadUInt(reader))
-	g.Port = soul.ReadUInt(reader)
-	soul.ReadUInt(reader)
-	g.ObfuscatedPort = soul.ReadUInt(reader)
+	g.Username, err = soul.ReadString(reader)
+	if err != nil {
+		return err
+	}
+
+	ip, err := soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
+
+	g.IP = soul.ReadIP(ip)
+
+	g.Port, err = soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
+
+	_, err = soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
+
+	g.ObfuscatedPort, err = soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

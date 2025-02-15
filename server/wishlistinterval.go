@@ -16,14 +16,26 @@ type WishlistInterval struct {
 }
 
 func (w *WishlistInterval) Deserialize(reader io.Reader) error {
-	soul.ReadUInt(reader)         // size
-	code := soul.ReadUInt(reader) // code 104
+	_, err := soul.ReadUInt(reader) // size
+	if err != nil {
+		return err
+	}
+
+	code, err := soul.ReadUInt(reader) // code 104
+	if err != nil {
+		return err
+	}
+
 	if code != WishlistIntervalCode {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", WishlistIntervalCode, code))
 	}
 
-	interval := soul.ReadUInt(reader)
+	interval, err := soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
+
 	w.Interval = int(interval)
 
 	return nil

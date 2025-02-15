@@ -71,7 +71,7 @@ const (
 	UploadToPeer
 )
 
-var ErrMismatchingCodes = errors.New("Mismatching codes")
+var ErrMismatchingCodes = errors.New("mismatching codes")
 
 var ErrTransferRejectionBanned = errors.New("Banned")
 
@@ -114,46 +114,69 @@ const (
 	MinorVersion UInt = 1
 )
 
-func Pack(data []byte) []byte {
+func Pack(data []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, UInt(len(data)))
-	binary.Write(buf, binary.LittleEndian, data)
+	err := binary.Write(buf, binary.LittleEndian, UInt(len(data)))
+	if err != nil {
+		return nil, err
+	}
 
-	return buf.Bytes()
+	err = binary.Write(buf, binary.LittleEndian, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
-func ReadUInt(reader io.Reader) UInt {
+func ReadUInt(reader io.Reader) (UInt, error) {
 	var val UInt
-	binary.Read(reader, binary.LittleEndian, &val)
+	err := binary.Read(reader, binary.LittleEndian, &val)
+	if err != nil {
+		return 0, err
+	}
 
-	return val
+	return val, nil
 }
 
-func WriteUInt(buf *bytes.Buffer, val UInt) {
-	binary.Write(buf, binary.LittleEndian, val)
+func WriteUInt(buf *bytes.Buffer, val UInt) error {
+	return binary.Write(buf, binary.LittleEndian, val)
 }
 
-func NewString(content string) String {
+func NewString(content string) (String, error) {
 	buf := new(bytes.Buffer)
-	buf.WriteString(content)
+	_, err := buf.WriteString(content)
+	if err != nil {
+		return nil, err
+	}
 
 	return Pack(buf.Bytes())
 }
 
-func ReadString(reader io.Reader) string {
-	size := ReadUInt(reader)
-	buf := make([]byte, size)
-	io.ReadFull(reader, buf)
+func ReadString(reader io.Reader) (string, error) {
+	size, err := ReadUInt(reader)
+	if err != nil {
+		return "", err
+	}
 
-	return string(buf)
+	buf := make([]byte, size)
+	_, err = io.ReadFull(reader, buf)
+	if err != nil {
+		return "", err
+	}
+
+	return string(buf), nil
 }
 
-func ReadBool(reader io.Reader) bool {
+func ReadBool(reader io.Reader) (bool, error) {
 	var val Boolean
 
-	binary.Read(reader, binary.LittleEndian, &val)
+	err := binary.Read(reader, binary.LittleEndian, &val)
+	if err != nil {
+		return false, err
+	}
 
-	return val == 1
+	return val == 1, nil
 }
 
 func ReadIP(val UInt) net.IP {

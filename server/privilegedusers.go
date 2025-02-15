@@ -15,17 +15,31 @@ type PrivilegedUsers struct {
 }
 
 func (p *PrivilegedUsers) Deserialize(reader io.Reader) error {
-	soul.ReadUInt(reader)         // size
-	code := soul.ReadUInt(reader) // code 69
+	_, err := soul.ReadUInt(reader) // size
+	if err != nil {
+		return err
+	}
+
+	code, err := soul.ReadUInt(reader) // code 69
+	if err != nil {
+		return err
+	}
+
 	if code != PrivilegedUsersCode {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", PrivilegedUsersCode, code))
 	}
 
-	numberOfUsers := soul.ReadUInt(reader)
+	numberOfUsers, err := soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
 
 	for i := 0; i < int(numberOfUsers); i++ {
-		user := soul.ReadString(reader)
+		user, err := soul.ReadString(reader)
+		if err != nil {
+			return err
+		}
 
 		p.Users = append(p.Users, user)
 	}

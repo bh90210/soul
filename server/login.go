@@ -29,15 +29,37 @@ type Login struct {
 // the sum of the username and password and append it to the buffer. Finally, it will
 // append the major and minor version of the protocol to the buffer and return the
 // buffer as a byte array.
-func (l Login) Serialize(username string, password string) []byte {
+func (l Login) Serialize(username string, password string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	soul.WriteUInt(buf, LoginCode)
+	err := soul.WriteUInt(buf, LoginCode)
+	if err != nil {
+		return nil, err
+	}
 
-	binary.Write(buf, binary.LittleEndian, soul.NewString(username))
-	binary.Write(buf, binary.LittleEndian, soul.NewString(password))
-	binary.Write(buf, binary.LittleEndian, soul.MajorVersion)
-	binary.Write(buf, binary.LittleEndian, sum(username, password))
-	binary.Write(buf, binary.LittleEndian, soul.MinorVersion)
+	u, err := soul.NewString(username)
+	if err != nil {
+		return nil, err
+	}
+
+	binary.Write(buf, binary.LittleEndian, u)
+
+	p, err := soul.NewString(password)
+	if err != nil {
+		return nil, err
+	}
+
+	binary.Write(buf, binary.LittleEndian, p)
+
+	soul.WriteUInt(buf, soul.MajorVersion)
+
+	s, err := sum(username, password)
+	if err != nil {
+		return nil, err
+	}
+
+	binary.Write(buf, binary.LittleEndian, s)
+
+	soul.WriteUInt(buf, soul.MinorVersion)
 
 	return soul.Pack(buf.Bytes())
 }
@@ -47,56 +69,87 @@ func (l Login) Serialize(username string, password string) []byte {
 // Consumers of Deserialize must check if the response is OK before proceeding
 // as contents f Response are pointers and can be nil.
 func (l *Login) Deserialize(reader io.Reader) error {
-	soul.ReadUInt(reader)         // size
-	code := soul.ReadUInt(reader) // code 1
+	_, err := soul.ReadUInt(reader) // size
+	if err != nil {
+		return err
+	}
+
+	code, err := soul.ReadUInt(reader) // code 1
+	if err != nil {
+		return err
+	}
+
 	if code != LoginCode {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", LoginCode, code))
 	}
 
-	success := soul.ReadBool(reader)
+	success, err := soul.ReadBool(reader)
+	if err != nil {
+		return err
+	}
+
 	if !success {
 		return readFailure(reader)
 	}
 
-	l.readSuccess(reader)
+	return l.readSuccess(reader)
+}
+
+func (l *Login) readSuccess(reader io.Reader) error {
+	var err error
+	l.Greet, err = soul.ReadString(reader)
+	if err != nil {
+		return err
+	}
+
+	ip, err := soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
+
+	l.IP = soul.ReadIP(ip)
+
+	l.Sum, err = soul.ReadString(reader)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (l *Login) readSuccess(reader io.Reader) {
-	l.Greet = soul.ReadString(reader)
-	l.IP = soul.ReadIP(soul.ReadUInt(reader))
-	l.Sum = soul.ReadString(reader)
-}
+// ErrInvalidUsername username is longer than 30 characters or contains invalid characters (non-ASCII)
+var ErrInvalidUsername = errors.New("INVALIDUSERNAME")
 
-// ErrLoginFailureInvalidUsername username is longer than 30 characters or contains invalid characters (non-ASCII)
-var ErrLoginFailureInvalidUsername = errors.New("INVALIDUSERNAME")
+// ErrInvalidPass Password for existing user is incorrect.
+var ErrInvalidPass = errors.New("INVALIDPASS")
 
-// ErrLoginFailureInvalidPass Password for existing user is incorrect.
-var ErrLoginFailureInvalidPass = errors.New("INVALIDPASS")
-
-// ErrLoginFailureInvalidVersion Client version is outdated.
-var ErrLoginFailureInvalidVersion = errors.New("INVALIDVERSION")
+// ErrInvalidVersion Client version is outdated.
+var ErrInvalidVersion = errors.New("INVALIDVERSION")
 
 func readFailure(reader io.Reader) error {
-	switch soul.ReadString(reader) {
+	errMessage, err := soul.ReadString(reader)
+	if err != nil {
+		return err
+	}
+
+	switch errMessage {
 	case "INVALIDUSERNAME":
-		return ErrLoginFailureInvalidUsername
+		return ErrInvalidUsername
 
 	case "INVALIDPASS":
-		return ErrLoginFailureInvalidPass
+		return ErrInvalidPass
 
 	case "INVALIDVERSION":
-		return ErrLoginFailureInvalidVersion
+		return ErrInvalidVersion
 	}
 
 	// This is not suppose to happen thus we are not
 	// dedicating a new var Err for it.
-	return errors.New("unknown login failure: " + soul.ReadString(reader))
+	return fmt.Errorf("unknown login failure: %s", errMessage)
 }
 
-func sum(username string, password string) soul.String {
+func sum(username string, password string) (soul.String, error) {
 	sum := md5.Sum([]byte(username + password))
 	return soul.NewString(hex.EncodeToString(sum[:]))
 }

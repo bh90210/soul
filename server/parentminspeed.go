@@ -15,14 +15,26 @@ type ParentMinSpeed struct {
 }
 
 func (p *ParentMinSpeed) Deserialize(reader io.Reader) error {
-	soul.ReadUInt(reader)         // size
-	code := soul.ReadUInt(reader) // code 83
+	_, err := soul.ReadUInt(reader) // size
+	if err != nil {
+		return err
+	}
+
+	code, err := soul.ReadUInt(reader) // code 83
+	if err != nil {
+		return err
+	}
+
 	if code != ParentMinSpeedCode {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", ParentMinSpeedCode, code))
 	}
 
-	minSpeed := soul.ReadUInt(reader)
+	minSpeed, err := soul.ReadUInt(reader)
+	if err != nil {
+		return err
+	}
+
 	p.MinSpeed = int(minSpeed)
 
 	return nil

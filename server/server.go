@@ -4,19 +4,26 @@ import (
 	"bytes"
 	"io"
 	"log"
+	"net"
 
 	"github.com/bh90210/soul"
 )
 
-func Message(connection io.Reader) (io.Reader, soul.UInt, soul.UInt) {
+func ReadMessage(connection net.Conn) (io.Reader, soul.UInt, soul.UInt, error) {
 	messageCopy := new(bytes.Buffer)
 	message := io.TeeReader(connection, messageCopy)
 
 	// Read the messageSize of the message.
-	packetSize := soul.ReadUInt(message)
+	packetSize, err := soul.ReadUInt(message)
+	if err != nil {
+		return nil, 0, 0, err
+	}
 
 	// Read the code.
-	code := soul.ReadUInt(message)
+	code, err := soul.ReadUInt(message)
+	if err != nil {
+		return nil, 0, 0, err
+	}
 
 	// The size of the actual message needs -4 to account for the packetSize and code.
 	messageSize := packetSize - 4
@@ -36,5 +43,14 @@ func Message(connection io.Reader) (io.Reader, soul.UInt, soul.UInt) {
 		}
 	}
 
-	return messageCopy, packetSize, code
+	return messageCopy, packetSize, code, nil
+}
+
+func SendMessage(connection net.Conn, message []byte) (int, error) {
+	n, err := connection.Write(message)
+	if err != nil {
+		return 0, err
+	}
+
+	return n, nil
 }
