@@ -36,30 +36,35 @@ func (l Login) Serialize(username string, password string) ([]byte, error) {
 		return nil, err
 	}
 
-	u, err := soul.NewString(username)
+	err = soul.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
 
-	binary.Write(buf, binary.LittleEndian, u)
-
-	p, err := soul.NewString(password)
+	err = soul.WriteString(buf, password)
 	if err != nil {
 		return nil, err
 	}
 
-	binary.Write(buf, binary.LittleEndian, p)
-
-	soul.WriteUInt(buf, soul.MajorVersion)
+	err = soul.WriteUInt(buf, soul.MajorVersion)
+	if err != nil {
+		return nil, err
+	}
 
 	s, err := sum(username, password)
 	if err != nil {
 		return nil, err
 	}
 
-	binary.Write(buf, binary.LittleEndian, s)
+	err = binary.Write(buf, binary.LittleEndian, s)
+	if err != nil {
+		return nil, err
+	}
 
-	soul.WriteUInt(buf, soul.MinorVersion)
+	err = soul.WriteUInt(buf, soul.MinorVersion)
+	if err != nil {
+		return nil, err
+	}
 
 	return soul.Pack(buf.Bytes())
 }

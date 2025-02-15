@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -18,8 +17,8 @@ const GetPeerAddressCode soul.UInt = 3
 type GetPeerAddress struct {
 	Username       string
 	IP             net.IP
-	Port           soul.UInt
-	ObfuscatedPort soul.UInt
+	Port           int
+	ObfuscatedPort int
 }
 
 // Serialize accepts a username and returns a serialized byte array.
@@ -30,12 +29,7 @@ func (g GetPeerAddress) Serialize(username string) ([]byte, error) {
 		return nil, err
 	}
 
-	u, err := soul.NewString(username)
-	if err != nil {
-		return nil, err
-	}
-
-	err = binary.Write(buf, binary.LittleEndian, u)
+	err = soul.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +65,7 @@ func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
 
 	g.IP = soul.ReadIP(ip)
 
-	g.Port, err = soul.ReadUInt(reader)
+	g.Port, err = soul.ReadInt(reader)
 	if err != nil {
 		return err
 	}
@@ -81,7 +75,7 @@ func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	g.ObfuscatedPort, err = soul.ReadUInt(reader)
+	g.ObfuscatedPort, err = soul.ReadInt(reader)
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"io"
-	"log"
 	"net"
 
 	"github.com/bh90210/soul"
@@ -33,7 +32,7 @@ func ReadMessage(connection net.Conn) (io.Reader, soul.UInt, soul.UInt, error) {
 		p := make([]byte, int(messageSize)-sizeSoFar)
 		n, err := message.Read(p)
 		if err != nil {
-			log.Fatal("read error", err)
+			return nil, 0, 0, err
 		}
 
 		sizeSoFar += n

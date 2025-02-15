@@ -72,7 +72,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	ownedPrivateRooms := make([]Room, 0)
+	var ownedPrivateRooms []Room
 	for i := 0; i < int(numberOfPrivateRooms); i++ {
 		name, err := soul.ReadString(reader)
 		if err != nil {
@@ -105,7 +105,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 
 	numberOFNotOwnedPrivateRooms := no
 
-	notOwnedPrivateRooms := make([]Room, 0)
+	var notOwnedPrivateRooms []Room
 	for i := 0; i < int(numberOFNotOwnedPrivateRooms); i++ {
 		name, err := soul.ReadString(reader)
 		if err != nil {
@@ -137,7 +137,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 
 	numberOfOperatedPrivateRooms := no
 
-	operatedPrivateRooms := make([]Room, 0)
+	var operatedPrivateRooms []Room
 	for i := 0; i < int(numberOfOperatedPrivateRooms); i++ {
 		name, err := soul.ReadString(reader)
 		if err != nil {

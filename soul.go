@@ -139,6 +139,15 @@ func ReadUInt(reader io.Reader) (UInt, error) {
 	return val, nil
 }
 
+func ReadInt(reader io.Reader) (int, error) {
+	v, err := ReadUInt(reader)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(v), nil
+}
+
 func WriteUInt(buf *bytes.Buffer, val UInt) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
@@ -151,6 +160,20 @@ func NewString(content string) (String, error) {
 	}
 
 	return Pack(buf.Bytes())
+}
+
+func WriteString(buf *bytes.Buffer, content string) error {
+	c, err := NewString(content)
+	if err != nil {
+		return err
+	}
+
+	err = binary.Write(buf, binary.LittleEndian, c)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ReadString(reader io.Reader) (string, error) {
@@ -177,6 +200,15 @@ func ReadBool(reader io.Reader) (bool, error) {
 	}
 
 	return val == 1, nil
+}
+
+func WriteBool(buf *bytes.Buffer, val bool) error {
+	var b Boolean
+	if val {
+		b = 1
+	}
+
+	return binary.Write(buf, binary.LittleEndian, b)
 }
 
 func ReadIP(val UInt) net.IP {

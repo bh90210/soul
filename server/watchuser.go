@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -28,7 +27,7 @@ func (w WatchUser) Serialize(username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	soul.WriteUInt(buf, WatchUserCode)
 
-	err := binary.Write(buf, binary.LittleEndian, username)
+	err := soul.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
@@ -70,42 +69,32 @@ func (w *WatchUser) Deserialize(reader io.Reader) error {
 
 		w.Status = soul.UserStatusCode(status)
 
-		speed, err := soul.ReadUInt(reader)
+		w.AverageSpeed, err = soul.ReadInt(reader)
 		if err != nil {
 			return err
 		}
 
-		w.AverageSpeed = int(speed)
-
-		number, err := soul.ReadUInt(reader)
+		w.UploadNumber, err = soul.ReadInt(reader)
 		if err != nil {
 			return err
 		}
 
-		w.UploadNumber = int(number)
-
-		files, err := soul.ReadUInt(reader)
+		w.Files, err = soul.ReadInt(reader)
 		if err != nil {
 			return err
 		}
 
-		w.Files = int(files)
-
-		directories, err := soul.ReadUInt(reader)
+		w.Directories, err = soul.ReadInt(reader)
 		if err != nil {
 			return err
 		}
-
-		w.Directories = int(directories)
 	}
 
 	if w.Status == soul.Online || w.Status == soul.Away {
-		code, err := soul.ReadString(reader)
+		w.CountryCode, err = soul.ReadString(reader)
 		if err != nil {
 			return err
 		}
-
-		w.CountryCode = code
 	}
 
 	return nil

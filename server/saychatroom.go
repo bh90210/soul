@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -25,22 +24,12 @@ func (s SayChatroom) Serialize(room, message string) ([]byte, error) {
 		return nil, err
 	}
 
-	r, err := soul.NewString(room)
+	err = soul.WriteString(buf, room)
 	if err != nil {
 		return nil, err
 	}
 
-	err = binary.Write(buf, binary.LittleEndian, r)
-	if err != nil {
-		return nil, err
-	}
-
-	m, err := soul.NewString(message)
-	if err != nil {
-		return nil, err
-	}
-
-	err = binary.Write(buf, binary.LittleEndian, m)
+	err = soul.WriteString(buf, message)
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/binary"
 
 	"github.com/bh90210/soul"
 )
@@ -18,7 +17,7 @@ func (u UnwatchUser) Serialize(username string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = binary.Write(buf, binary.LittleEndian, username)
+	err = soul.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}

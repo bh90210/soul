@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -26,12 +25,7 @@ func (g GetUserStatus) Serialize(username string) ([]byte, error) {
 		return nil, err
 	}
 
-	u, err := soul.NewString(username)
-	if err != nil {
-		return nil, err
-	}
-
-	err = binary.Write(buf, binary.LittleEndian, u)
+	err = soul.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
@@ -66,9 +60,6 @@ func (g *GetUserStatus) Deserialize(reader io.Reader) error {
 	}
 
 	g.Status = soul.UserStatusCode(status)
-	if err != nil {
-		return err
-	}
 
 	g.Privileged, err = soul.ReadBool(reader)
 	if err != nil {
