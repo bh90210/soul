@@ -1,3 +1,4 @@
+// Package soul holds the common types and functions used by the rest of the packages.
 package soul
 
 import (
@@ -20,83 +21,11 @@ const (
 	Distributed ConnectionType = "D"
 )
 
-// UserStatus represents the status of a user.
-type UserStatus int
-
-const (
-	// Offline user status.
-	Offline UserStatus = iota
-	// Away user status.
-	Away
-	// Online user status.
-	Online
-)
-
-// UploadPermission represents the permission level for uploading files.
-type UploadPermission int
-
-const (
-	// NoOne permission level.
-	NoOne UploadPermission = iota
-	// Everyone permission level.
-	Everyone
-	// UsersInList permission level.
-	UsersInList
-	// PermittedUsers permission level.
-	PermittedUsers
-)
-
-// TransferDirection represents the direction of a file transfer.
-type TransferDirection int
-
-const (
-	// DownloadFromPeer transfer direction.
-	DownloadFromPeer TransferDirection = iota
-	// UploadToPeer transfer direction.
-	UploadToPeer
-)
-
 var ErrMismatchingCodes = errors.New("mismatching codes")
 
-var ErrTransferRejectionBanned = errors.New("Banned")
-
-var ErrTransferRejectionCancelled = errors.New("Cancelled")
-
-var ErrTransferRejectionComplete = errors.New("Complete")
-
-var ErrTransferRejectionFileNotShared = errors.New("File not shared.")
-
-var ErrTransferRejectionFileReadError = errors.New("File read error.")
-
-var ErrTransferRejectionPendingShutdown = errors.New("Pending shutdown.")
-
-var ErrTransferRejectionQueued = errors.New("Queued")
-
-var ErrTransferRejectionTooManyFiles = errors.New("Too many files")
-
-var ErrTransferRejectionTooManyMegabytes = errors.New("Too many megabytes")
-
-// FileAttributeType represents the type of file attribute.
-type FileAttributeType int
-
 const (
-	// Bitrate (kbps).
-	Bitrate FileAttributeType = iota
-	// Duration (seconds).
-	Duration
-	// VBR (0 or 1).
-	VBR
-	// Encoder (unused). See https://nicotine-plus.org/doc/SLSKPROTOCOL.html#file-attribute-types.
-	_
-	// SampleRate (Hz).
-	SampleRate
-	// BitDepth (bits).
-	BitDepth
-)
-
-const (
-	MajorVersion uint32 = 160
-	MinorVersion uint32 = 1
+	MajorVersion uint32 = 1
+	MinorVersion uint32 = 0
 )
 
 func Pack(data []byte) ([]byte, error) {
@@ -134,6 +63,48 @@ func ReadInt(reader io.Reader) (int, error) {
 }
 
 func WriteUint32(buf *bytes.Buffer, val uint32) error {
+	return binary.Write(buf, binary.LittleEndian, val)
+}
+
+func ReadUint8(reader io.Reader) (uint8, error) {
+	var val uint8
+	err := binary.Read(reader, binary.LittleEndian, &val)
+	if err != nil {
+		return 0, err
+	}
+
+	return val, nil
+}
+
+func WriteUint8(buf *bytes.Buffer, val uint8) error {
+	return binary.Write(buf, binary.LittleEndian, val)
+}
+
+func ReadInt64ToInt(reader io.Reader) (int, error) {
+	var val int64
+	err := binary.Read(reader, binary.LittleEndian, &val)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(val), nil
+}
+
+func WriteInt64(buf *bytes.Buffer, val int64) error {
+	return binary.Write(buf, binary.LittleEndian, val)
+}
+
+func ReadInt32ToInt(reader io.Reader) (int, error) {
+	var val int32
+	err := binary.Read(reader, binary.LittleEndian, &val)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(val), nil
+}
+
+func WriteInt32(buf *bytes.Buffer, val int32) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
