@@ -167,6 +167,35 @@ func WriteBool(buf *bytes.Buffer, val bool) error {
 	return binary.Write(buf, binary.LittleEndian, b)
 }
 
+func ReadBytes(reader io.Reader) ([]byte, error) {
+	size, err := ReadUint32(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, size)
+	_, err = io.ReadFull(reader, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf, nil
+}
+
+func WriteBytes(buf *bytes.Buffer, content []byte) error {
+	err := binary.Write(buf, binary.LittleEndian, uint32(len(content)))
+	if err != nil {
+		return err
+	}
+
+	err = binary.Write(buf, binary.LittleEndian, content)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func ReadIP(val uint32) net.IP {
 	ip := make(net.IP, 4)
 	binary.BigEndian.PutUint32(ip, val)
