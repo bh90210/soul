@@ -10,7 +10,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const ConnectToPeerCode soul.UInt = 18
+const ConnectToPeerCode Code = 18
 
 type ConnectToPeer struct {
 	Username       string
@@ -24,12 +24,12 @@ type ConnectToPeer struct {
 
 func (c ConnectToPeer) Serialize(token int, username string, connType soul.ConnectionType) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, ConnectToPeerCode)
+	err := soul.WriteUint32(buf, uint32(ConnectToPeerCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(token))
+	err = soul.WriteUint32(buf, uint32(token))
 	if err != nil {
 		return nil, err
 	}
@@ -48,17 +48,17 @@ func (c ConnectToPeer) Serialize(token int, username string, connType soul.Conne
 }
 
 func (c *ConnectToPeer) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 18
+	code, err := soul.ReadUint32(reader) // code 18
 	if err != nil {
 		return err
 	}
 
-	if code != ConnectToPeerCode {
+	if code != uint32(ConnectToPeerCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", ConnectToPeerCode, code))
 	}
@@ -77,7 +77,7 @@ func (c *ConnectToPeer) Deserialize(reader io.Reader) error {
 
 	c.Type = soul.ConnectionType(connType)
 
-	ip, err := soul.ReadUInt(reader)
+	ip, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (c *ConnectToPeer) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	_, err = soul.ReadUInt(reader)
+	_, err = soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}

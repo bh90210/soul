@@ -6,13 +6,13 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const BranchRootCode soul.UInt = 127
+const BranchRootCode Code = 127
 
 type BranchRoot struct{}
 
 func (b BranchRoot) Serialize(root string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, BranchRootCode)
+	err := soul.WriteUint32(buf, uint32(BranchRootCode))
 	if err != nil {
 		return nil, err
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const JoinRoomCode soul.UInt = 14
+const JoinRoomCode Code = 14
 
 type JoinRoom struct {
 	Room  string
@@ -21,7 +21,7 @@ type JoinRoom struct {
 
 type User struct {
 	Username string
-	Status   soul.UserStatusCode
+	Status   soul.UserStatus
 
 	AverageSpeed int
 	UploadNumber int
@@ -35,7 +35,7 @@ type User struct {
 
 func (j JoinRoom) Serialize(room string, private bool) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, JoinRoomCode)
+	err := soul.WriteUint32(buf, uint32(JoinRoomCode))
 	if err != nil {
 		return nil, err
 	}
@@ -46,26 +46,26 @@ func (j JoinRoom) Serialize(room string, private bool) ([]byte, error) {
 	}
 
 	if private {
-		soul.WriteUInt(buf, 1)
+		soul.WriteUint32(buf, 1)
 	} else {
-		soul.WriteUInt(buf, 0)
+		soul.WriteUint32(buf, 0)
 	}
 
 	return soul.Pack(buf.Bytes())
 }
 
 func (j *JoinRoom) Deserialize(reader *bytes.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 1
+	code, err := soul.ReadUint32(reader) // code 1
 	if err != nil {
 		return err
 	}
 
-	if code != JoinRoomCode {
+	if code != uint32(JoinRoomCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", JoinRoomCode, code))
 	}
@@ -75,7 +75,7 @@ func (j *JoinRoom) Deserialize(reader *bytes.Reader) error {
 		return err
 	}
 
-	usersInRoom, err := soul.ReadUInt(reader)
+	usersInRoom, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -91,53 +91,53 @@ func (j *JoinRoom) Deserialize(reader *bytes.Reader) error {
 		j.Users = append(j.Users, u)
 	}
 
-	statuses, err := soul.ReadUInt(reader)
+	statuses, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < int(statuses); i++ {
-		status, err := soul.ReadUInt(reader)
+		status, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
 
-		j.Users[i].Status = soul.UserStatusCode(status)
+		j.Users[i].Status = soul.UserStatus(status)
 	}
 
-	stats, err := soul.ReadUInt(reader)
+	stats, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < int(stats); i++ {
-		speed, err := soul.ReadUInt(reader)
+		speed, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
 
 		j.Users[i].AverageSpeed = int(speed)
 
-		upload, err := soul.ReadUInt(reader)
+		upload, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
 
 		j.Users[i].UploadNumber = int(upload)
 
-		_, err = soul.ReadUInt(reader)
+		_, err = soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
 
-		files, err := soul.ReadUInt(reader)
+		files, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
 
 		j.Users[i].Files = int(files)
 
-		directories, err := soul.ReadUInt(reader)
+		directories, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
@@ -145,13 +145,13 @@ func (j *JoinRoom) Deserialize(reader *bytes.Reader) error {
 		j.Users[i].Directories = int(directories)
 	}
 
-	slots, err := soul.ReadUInt(reader)
+	slots, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < int(slots); i++ {
-		freeSlots, err := soul.ReadUInt(reader)
+		freeSlots, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
@@ -159,7 +159,7 @@ func (j *JoinRoom) Deserialize(reader *bytes.Reader) error {
 		j.Users[i].FreeSlots = int(freeSlots)
 	}
 
-	countries, err := soul.ReadUInt(reader)
+	countries, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func (j *JoinRoom) Deserialize(reader *bytes.Reader) error {
 		return err
 	}
 
-	operators, err := soul.ReadUInt(reader)
+	operators, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}

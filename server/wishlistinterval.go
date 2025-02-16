@@ -9,24 +9,24 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const WishlistIntervalCode soul.UInt = 104
+const WishlistIntervalCode Code = 104
 
 type WishlistInterval struct {
 	Interval int
 }
 
 func (w *WishlistInterval) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 104
+	code, err := soul.ReadUint32(reader) // code 104
 	if err != nil {
 		return err
 	}
 
-	if code != WishlistIntervalCode {
+	if code != uint32(WishlistIntervalCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", WishlistIntervalCode, code))
 	}

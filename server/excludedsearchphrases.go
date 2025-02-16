@@ -9,29 +9,29 @@ import (
 )
 
 // Code ExcludedSearchPhrases.
-const ExcludedSearchPhrasesCode soul.UInt = 160
+const ExcludedSearchPhrasesCode Code = 160
 
 type ExcludedSearchPhrases struct {
 	Phrases []string
 }
 
 func (e *ExcludedSearchPhrases) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 160
+	code, err := soul.ReadUint32(reader) // code 160
 	if err != nil {
 		return err
 	}
 
-	if code != ExcludedSearchPhrasesCode {
+	if code != uint32(ExcludedSearchPhrasesCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", ExcludedSearchPhrasesCode, code))
 	}
 
-	numberOfPhrases, err := soul.ReadUInt(reader)
+	numberOfPhrases, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}

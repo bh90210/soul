@@ -6,13 +6,13 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const UnwatchUserCode soul.UInt = 6
+const UnwatchUserCode Code = 6
 
 type UnwatchUser struct{}
 
 func (u UnwatchUser) Serialize(username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, UnwatchUserCode)
+	err := soul.WriteUint32(buf, uint32(UnwatchUserCode))
 	if err != nil {
 		return nil, err
 	}

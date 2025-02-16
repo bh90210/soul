@@ -6,13 +6,13 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const PrivateRoomCancelMembershipCode soul.UInt = 136
+const PrivateRoomCancelMembershipCode Code = 136
 
 type PrivateRoomCancelMembership struct{}
 
 func (p PrivateRoomCancelMembership) Serialize(room string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, PrivateRoomCancelMembershipCode)
+	err := soul.WriteUint32(buf, uint32(PrivateRoomCancelMembershipCode))
 	if err != nil {
 		return nil, err
 	}

@@ -6,13 +6,13 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const AcceptChildrenCode soul.UInt = 100
+const AcceptChildrenCode Code = 100
 
 type AcceptChildren struct{}
 
 func (a AcceptChildren) Serialize(accept bool) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, AcceptChildrenCode)
+	err := soul.WriteUint32(buf, uint32(AcceptChildrenCode))
 	if err != nil {
 		return nil, err
 	}

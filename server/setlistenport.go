@@ -7,20 +7,20 @@ import (
 )
 
 // SetListenPortCode SetWaitPort.
-const SetListenPortCode soul.UInt = 2
+const SetListenPortCode Code = 2
 
 // SetListenPort SetListenPort.
 type SetListenPort struct{}
 
 // Serialize accepts a port number and returns a serialized byte array.
-func (s SetListenPort) Serialize(port soul.UInt) ([]byte, error) {
+func (s SetListenPort) Serialize(port int) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, SetListenPortCode)
+	err := soul.WriteUint32(buf, uint32(SetListenPortCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, port)
+	err = soul.WriteUint32(buf, uint32(port))
 	if err != nil {
 		return nil, err
 	}

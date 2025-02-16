@@ -6,13 +6,13 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const RoomSearchCode soul.UInt = 120
+const RoomSearchCode Code = 120
 
 type RoomSearch struct{}
 
 func (r RoomSearch) Serialize(room string, token int, searchQuery string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, RoomSearchCode)
+	err := soul.WriteUint32(buf, uint32(RoomSearchCode))
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (r RoomSearch) Serialize(room string, token int, searchQuery string) ([]byt
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(token))
+	err = soul.WriteUint32(buf, uint32(token))
 	if err != nil {
 		return nil, err
 	}

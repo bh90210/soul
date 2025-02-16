@@ -6,23 +6,23 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const SharedFoldersFilesCode soul.UInt = 35
+const SharedFoldersFilesCode Code = 35
 
 type SharedFoldersFiles struct{}
 
 func (s SharedFoldersFiles) Serialize(directories, files int) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, SharedFoldersFilesCode)
+	err := soul.WriteUint32(buf, uint32(SharedFoldersFilesCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(directories))
+	err = soul.WriteUint32(buf, uint32(directories))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(files))
+	err = soul.WriteUint32(buf, uint32(files))
 	if err != nil {
 		return nil, err
 	}

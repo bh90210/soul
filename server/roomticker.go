@@ -8,7 +8,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const RoomTickerCode soul.UInt = 113
+const RoomTickerCode Code = 113
 
 type RoomTicker struct {
 	Room  string
@@ -21,22 +21,22 @@ type UserTickers struct {
 }
 
 func (r *RoomTicker) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 113
+	code, err := soul.ReadUint32(reader) // code 113
 	if err != nil {
 		return err
 	}
 
-	if code != RoomTickerCode {
+	if code != uint32(RoomTickerCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", RoomTickerCode, code))
 	}
 
-	users, err := soul.ReadUInt(reader)
+	users, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}

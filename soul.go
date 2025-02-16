@@ -8,21 +8,6 @@ import (
 	"net"
 )
 
-type (
-	//Int represents a signed 32-bit integer.
-	Int int32
-	// UInt represents an unsigned 32-bit integer.
-	UInt uint32
-	// Long represents a signed 64-bit integer.
-	Long int64
-	// ULong represents an unsigned 64-bit integer.
-	ULong uint64
-	// String represents a string.
-	String []byte
-	// Boolean represents a boolean.
-	Boolean uint8
-)
-
 // ConnectionType represents the type of connection.
 type ConnectionType string
 
@@ -35,12 +20,12 @@ const (
 	Distributed ConnectionType = "D"
 )
 
-// UserStatusCode represents the status of a user.
-type UserStatusCode int
+// UserStatus represents the status of a user.
+type UserStatus int
 
 const (
 	// Offline user status.
-	Offline UserStatusCode = iota
+	Offline UserStatus = iota
 	// Away user status.
 	Away
 	// Online user status.
@@ -110,13 +95,13 @@ const (
 )
 
 const (
-	MajorVersion UInt = 160
-	MinorVersion UInt = 1
+	MajorVersion uint32 = 160
+	MinorVersion uint32 = 1
 )
 
 func Pack(data []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, UInt(len(data)))
+	err := binary.Write(buf, binary.LittleEndian, uint32(len(data)))
 	if err != nil {
 		return nil, err
 	}
@@ -129,8 +114,8 @@ func Pack(data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func ReadUInt(reader io.Reader) (UInt, error) {
-	var val UInt
+func ReadUint32(reader io.Reader) (uint32, error) {
+	var val uint32
 	err := binary.Read(reader, binary.LittleEndian, &val)
 	if err != nil {
 		return 0, err
@@ -140,7 +125,7 @@ func ReadUInt(reader io.Reader) (UInt, error) {
 }
 
 func ReadInt(reader io.Reader) (int, error) {
-	v, err := ReadUInt(reader)
+	v, err := ReadUint32(reader)
 	if err != nil {
 		return 0, err
 	}
@@ -148,11 +133,11 @@ func ReadInt(reader io.Reader) (int, error) {
 	return int(v), nil
 }
 
-func WriteUInt(buf *bytes.Buffer, val UInt) error {
+func WriteUint32(buf *bytes.Buffer, val uint32) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
-func NewString(content string) (String, error) {
+func NewString(content string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	_, err := buf.WriteString(content)
 	if err != nil {
@@ -177,7 +162,7 @@ func WriteString(buf *bytes.Buffer, content string) error {
 }
 
 func ReadString(reader io.Reader) (string, error) {
-	size, err := ReadUInt(reader)
+	size, err := ReadUint32(reader)
 	if err != nil {
 		return "", err
 	}
@@ -192,7 +177,7 @@ func ReadString(reader io.Reader) (string, error) {
 }
 
 func ReadBool(reader io.Reader) (bool, error) {
-	var val Boolean
+	var val uint8
 
 	err := binary.Read(reader, binary.LittleEndian, &val)
 	if err != nil {
@@ -203,7 +188,7 @@ func ReadBool(reader io.Reader) (bool, error) {
 }
 
 func WriteBool(buf *bytes.Buffer, val bool) error {
-	var b Boolean
+	var b uint8
 	if val {
 		b = 1
 	}
@@ -211,9 +196,9 @@ func WriteBool(buf *bytes.Buffer, val bool) error {
 	return binary.Write(buf, binary.LittleEndian, b)
 }
 
-func ReadIP(val UInt) net.IP {
+func ReadIP(val uint32) net.IP {
 	ip := make(net.IP, 4)
-	binary.BigEndian.PutUint32(ip, uint32(val))
+	binary.BigEndian.PutUint32(ip, val)
 
 	return ip
 }

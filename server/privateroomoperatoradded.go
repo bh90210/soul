@@ -8,24 +8,24 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const PrivateRoomOperatorAddedCode soul.UInt = 145
+const PrivateRoomOperatorAddedCode Code = 145
 
 type PrivateRoomOperatorAdded struct {
 	Room string
 }
 
 func (p *PrivateRoomOperatorAdded) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 145
+	code, err := soul.ReadUint32(reader) // code 145
 	if err != nil {
 		return err
 	}
 
-	if code != PrivateRoomOperatorAddedCode {
+	if code != uint32(PrivateRoomOperatorAddedCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", PrivateRoomOperatorAddedCode, code))
 	}

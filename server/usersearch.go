@@ -6,13 +6,13 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const UserSearchCode soul.UInt = 42
+const UserSearchCode Code = 42
 
 type UserSearch struct{}
 
 func (u UserSearch) Serialize(username string, token int, searchQuery string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, UserSearchCode)
+	err := soul.WriteUint32(buf, uint32(UserSearchCode))
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (u UserSearch) Serialize(username string, token int, searchQuery string) ([
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(token))
+	err = soul.WriteUint32(buf, uint32(token))
 	if err != nil {
 		return nil, err
 	}

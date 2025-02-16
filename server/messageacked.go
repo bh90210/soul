@@ -6,18 +6,18 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const MessageAckedCode soul.UInt = 23
+const MessageAckedCode Code = 23
 
 type MessageAcked struct{}
 
 func (m MessageAcked) Serialize(messageID int) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, MessageAckedCode)
+	err := soul.WriteUint32(buf, uint32(MessageAckedCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(messageID))
+	err = soul.WriteUint32(buf, uint32(messageID))
 	if err != nil {
 		return nil, err
 	}

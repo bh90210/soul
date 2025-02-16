@@ -6,18 +6,18 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const SetStatusCode soul.UInt = 28
+const SetStatusCode Code = 28
 
 type SetStatus struct{}
 
-func (s SetStatus) Serialize(status soul.UserStatusCode) ([]byte, error) {
+func (s SetStatus) Serialize(status soul.UserStatus) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, SetStatusCode)
+	err := soul.WriteUint32(buf, uint32(SetStatusCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(status))
+	err = soul.WriteUint32(buf, uint32(status))
 	if err != nil {
 		return nil, err
 	}

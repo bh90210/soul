@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const PossibleParentsCode soul.UInt = 102
+const PossibleParentsCode Code = 102
 
 type PossibleParents struct {
 	Parents []Parent
@@ -22,22 +22,22 @@ type Parent struct {
 }
 
 func (p *PossibleParents) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 102
+	code, err := soul.ReadUint32(reader) // code 102
 	if err != nil {
 		return err
 	}
 
-	if code != PossibleParentsCode {
+	if code != uint32(PossibleParentsCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", PossibleParentsCode, code))
 	}
 
-	parents, err := soul.ReadUInt(reader)
+	parents, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (p *PossibleParents) Deserialize(reader io.Reader) error {
 			return err
 		}
 
-		ip, err := soul.ReadUInt(reader)
+		ip, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}

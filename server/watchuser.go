@@ -9,12 +9,12 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const WatchUserCode soul.UInt = 5
+const WatchUserCode Code = 5
 
 type WatchUser struct {
 	Username     string
 	Exists       bool
-	Status       soul.UserStatusCode
+	Status       soul.UserStatus
 	AverageSpeed int
 	UploadNumber int
 	Files        int
@@ -25,7 +25,7 @@ type WatchUser struct {
 // Serialize serializes the WatchUser struct into a byte slice
 func (w WatchUser) Serialize(username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	soul.WriteUInt(buf, WatchUserCode)
+	soul.WriteUint32(buf, uint32(WatchUserCode))
 
 	err := soul.WriteString(buf, username)
 	if err != nil {
@@ -36,17 +36,17 @@ func (w WatchUser) Serialize(username string) ([]byte, error) {
 }
 
 func (w *WatchUser) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 5
+	code, err := soul.ReadUint32(reader) // code 5
 	if err != nil {
 		return err
 	}
 
-	if code != WatchUserCode {
+	if code != uint32(WatchUserCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", WatchUserCode, code))
 	}
@@ -62,12 +62,12 @@ func (w *WatchUser) Deserialize(reader io.Reader) error {
 	}
 
 	if w.Exists {
-		status, err := soul.ReadUInt(reader)
+		status, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
 
-		w.Status = soul.UserStatusCode(status)
+		w.Status = soul.UserStatus(status)
 
 		w.AverageSpeed, err = soul.ReadInt(reader)
 		if err != nil {

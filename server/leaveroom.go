@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const LeaveRoomCode soul.UInt = 15
+const LeaveRoomCode Code = 15
 
 type LeaveRoom struct {
 	Room string
@@ -17,7 +17,7 @@ type LeaveRoom struct {
 
 func (l LeaveRoom) Serialize(room string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, LeaveRoomCode)
+	err := soul.WriteUint32(buf, uint32(LeaveRoomCode))
 	if err != nil {
 		return nil, err
 	}
@@ -31,17 +31,17 @@ func (l LeaveRoom) Serialize(room string) ([]byte, error) {
 }
 
 func (l *LeaveRoom) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 15
+	code, err := soul.ReadUint32(reader) // code 15
 	if err != nil {
 		return err
 	}
 
-	if code != LeaveRoomCode {
+	if code != uint32(LeaveRoomCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", LeaveRoomCode, code))
 	}

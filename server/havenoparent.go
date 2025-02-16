@@ -6,13 +6,13 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const HaveNoParentCode soul.UInt = 71
+const HaveNoParentCode Code = 71
 
 type HaveNoParent struct{}
 
 func (h HaveNoParent) Serialize(haveParents bool) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, HaveNoParentCode)
+	err := soul.WriteUint32(buf, uint32(HaveNoParentCode))
 	if err != nil {
 		return nil, err
 	}

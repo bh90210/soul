@@ -8,7 +8,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const FileSearchCode soul.UInt = 26
+const FileSearchCode Code = 26
 
 type FileSearch struct {
 	Username    string
@@ -18,12 +18,12 @@ type FileSearch struct {
 
 func (f FileSearch) Serialize(token int, searchQuery string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, FileSearchCode)
+	err := soul.WriteUint32(buf, uint32(FileSearchCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(token))
+	err = soul.WriteUint32(buf, uint32(token))
 	if err != nil {
 		return nil, err
 	}
@@ -37,17 +37,17 @@ func (f FileSearch) Serialize(token int, searchQuery string) ([]byte, error) {
 }
 
 func (f *FileSearch) Deserialize(reader *bytes.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 26
+	code, err := soul.ReadUint32(reader) // code 26
 	if err != nil {
 		return err
 	}
 
-	if code != FileSearchCode {
+	if code != uint32(FileSearchCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", FileSearchCode, code))
 	}

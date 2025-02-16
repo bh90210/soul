@@ -11,7 +11,7 @@ import (
 )
 
 // Code GetPeerAddress.
-const GetPeerAddressCode soul.UInt = 3
+const GetPeerAddressCode Code = 3
 
 // Response is the message we get from the server when trying to get a peer's address.
 type GetPeerAddress struct {
@@ -24,7 +24,7 @@ type GetPeerAddress struct {
 // Serialize accepts a username and returns a serialized byte array.
 func (g GetPeerAddress) Serialize(username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, GetPeerAddressCode)
+	err := soul.WriteUint32(buf, uint32(GetPeerAddressCode))
 	if err != nil {
 		return nil, err
 	}
@@ -38,17 +38,17 @@ func (g GetPeerAddress) Serialize(username string) ([]byte, error) {
 }
 
 func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 3
+	code, err := soul.ReadUint32(reader) // code 3
 	if err != nil {
 		return err
 	}
 
-	if code != GetPeerAddressCode {
+	if code != uint32(GetPeerAddressCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", GetPeerAddressCode, code))
 	}
@@ -58,7 +58,7 @@ func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	ip, err := soul.ReadUInt(reader)
+	ip, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	_, err = soul.ReadUInt(reader)
+	_, err = soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 // RoomListCode RoomList.
-const RoomListCode soul.UInt = 64
+const RoomListCode Code = 64
 
 type RoomList struct {
 	Rooms []Room
@@ -24,23 +24,23 @@ type Room struct {
 }
 
 func (r *RoomList) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 64
+	code, err := soul.ReadUint32(reader) // code 64
 	if err != nil {
 		return err
 	}
 
-	if code != RoomListCode {
+	if code != uint32(RoomListCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", RoomListCode, code))
 	}
 
 	// Public room.
-	numberOfRooms, err := soul.ReadUInt(reader)
+	numberOfRooms, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	for i := range r.Rooms {
-		users, err := soul.ReadUInt(reader)
+		users, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
@@ -67,7 +67,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	// Owned private rooms.
-	numberOfPrivateRooms, err := soul.ReadUInt(reader)
+	numberOfPrivateRooms, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	for i := range ownedPrivateRooms {
-		no, err := soul.ReadUInt(reader)
+		no, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
@@ -98,7 +98,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	r.Rooms = append(r.Rooms, ownedPrivateRooms...)
 
 	// Not owned private rooms.
-	no, err := soul.ReadUInt(reader)
+	no, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	for i := range notOwnedPrivateRooms {
-		no, err := soul.ReadUInt(reader)
+		no, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
@@ -130,7 +130,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	r.Rooms = append(r.Rooms, ownedPrivateRooms...)
 
 	// Operated private rooms.
-	no, err = soul.ReadUInt(reader)
+	no, err = soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	for i := range operatedPrivateRooms {
-		no, err := soul.ReadUInt(reader)
+		no, err := soul.ReadUint32(reader)
 		if err != nil {
 			return err
 		}

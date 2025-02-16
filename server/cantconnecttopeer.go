@@ -8,7 +8,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const CantConnectToPeerCode soul.UInt = 1001
+const CantConnectToPeerCode Code = 1001
 
 type CantConnectToPeer struct {
 	Token    int
@@ -17,12 +17,12 @@ type CantConnectToPeer struct {
 
 func (c CantConnectToPeer) Serialize(token int, username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, CantConnectToPeerCode)
+	err := soul.WriteUint32(buf, uint32(CantConnectToPeerCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(token))
+	err = soul.WriteUint32(buf, uint32(token))
 	if err != nil {
 		return nil, err
 	}
@@ -36,17 +36,17 @@ func (c CantConnectToPeer) Serialize(token int, username string) ([]byte, error)
 }
 
 func (c *CantConnectToPeer) Deserialize(reader *bytes.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 1001
+	code, err := soul.ReadUint32(reader) // code 1001
 	if err != nil {
 		return err
 	}
 
-	if code != CantConnectToPeerCode {
+	if code != uint32(CantConnectToPeerCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", CantConnectToPeerCode, code))
 	}

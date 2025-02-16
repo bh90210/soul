@@ -8,24 +8,24 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const AdminMessageCode soul.UInt = 66
+const AdminMessageCode Code = 66
 
 type AdminMessage struct {
 	Message string
 }
 
 func (a *AdminMessage) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 66
+	code, err := soul.ReadUint32(reader) // code 66
 	if err != nil {
 		return err
 	}
 
-	if code != AdminMessageCode {
+	if code != uint32(AdminMessageCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", AdminMessageCode, code))
 	}

@@ -6,18 +6,18 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const BranchLevelCode soul.UInt = 126
+const BranchLevelCode Code = 126
 
 type BranchLevel struct{}
 
 func (b BranchLevel) Serialize(level int) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, BranchLevelCode)
+	err := soul.WriteUint32(buf, uint32(BranchLevelCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(level))
+	err = soul.WriteUint32(buf, uint32(level))
 	if err != nil {
 		return nil, err
 	}

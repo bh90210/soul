@@ -6,18 +6,18 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const WishlistSearchCode soul.UInt = 103
+const WishlistSearchCode Code = 103
 
 type WishlistSearch struct{}
 
 func (w WishlistSearch) Serialize(token int, serachQuery string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, WishlistSearchCode)
+	err := soul.WriteUint32(buf, uint32(WishlistSearchCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(token))
+	err = soul.WriteUint32(buf, uint32(token))
 	if err != nil {
 		return nil, err
 	}

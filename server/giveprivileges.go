@@ -6,13 +6,13 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const GivePrivilegesCode soul.UInt = 123
+const GivePrivilegesCode Code = 123
 
 type GivePrivileges struct{}
 
 func (g GivePrivileges) Serialize(username string, days int) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, GivePrivilegesCode)
+	err := soul.WriteUint32(buf, uint32(GivePrivilegesCode))
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (g GivePrivileges) Serialize(username string, days int) ([]byte, error) {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.UInt(days))
+	err = soul.WriteUint32(buf, uint32(days))
 	if err != nil {
 		return nil, err
 	}

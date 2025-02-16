@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const PrivateRoomRemoveUserCode soul.UInt = 135
+const PrivateRoomRemoveUserCode Code = 135
 
 type PrivateRoomRemoveUser struct {
 	Room     string
@@ -18,7 +18,7 @@ type PrivateRoomRemoveUser struct {
 
 func (p PrivateRoomRemoveUser) Serialize(room, username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, PrivateRoomRemoveUserCode)
+	err := soul.WriteUint32(buf, uint32(PrivateRoomRemoveUserCode))
 	if err != nil {
 		return nil, err
 	}
@@ -37,17 +37,17 @@ func (p PrivateRoomRemoveUser) Serialize(room, username string) ([]byte, error) 
 }
 
 func (p *PrivateRoomRemoveUser) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 135
+	code, err := soul.ReadUint32(reader) // code 135
 	if err != nil {
 		return err
 	}
 
-	if code != PrivateRoomRemoveUserCode {
+	if code != uint32(PrivateRoomRemoveUserCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", PrivateRoomRemoveUserCode, code))
 	}

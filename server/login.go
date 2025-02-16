@@ -14,7 +14,7 @@ import (
 )
 
 // Code Login.
-const LoginCode soul.UInt = 1
+const LoginCode Code = 1
 
 // Response is the message we get from the server when trying to login.
 // It can either be a success or a failure.
@@ -31,7 +31,7 @@ type Login struct {
 // buffer as a byte array.
 func (l Login) Serialize(username string, password string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, LoginCode)
+	err := soul.WriteUint32(buf, uint32(LoginCode))
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (l Login) Serialize(username string, password string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.MajorVersion)
+	err = soul.WriteUint32(buf, soul.MajorVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (l Login) Serialize(username string, password string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = soul.WriteUInt(buf, soul.MinorVersion)
+	err = soul.WriteUint32(buf, soul.MinorVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -74,17 +74,17 @@ func (l Login) Serialize(username string, password string) ([]byte, error) {
 // Consumers of Deserialize must check if the response is OK before proceeding
 // as contents f Response are pointers and can be nil.
 func (l *Login) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUInt(reader) // size
+	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUInt(reader) // code 1
+	code, err := soul.ReadUint32(reader) // code 1
 	if err != nil {
 		return err
 	}
 
-	if code != LoginCode {
+	if code != uint32(LoginCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
 			fmt.Errorf("expected code %d, got %d", LoginCode, code))
 	}
@@ -108,7 +108,7 @@ func (l *Login) readSuccess(reader io.Reader) error {
 		return err
 	}
 
-	ip, err := soul.ReadUInt(reader)
+	ip, err := soul.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func readFailure(reader io.Reader) error {
 	return fmt.Errorf("unknown login failure: %s", errMessage)
 }
 
-func sum(username string, password string) (soul.String, error) {
+func sum(username string, password string) ([]byte, error) {
 	sum := md5.Sum([]byte(username + password))
 	return soul.NewString(hex.EncodeToString(sum[:]))
 }

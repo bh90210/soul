@@ -6,13 +6,13 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const PingCode soul.UInt = 32
+const PingCode Code = 32
 
 type Ping struct{}
 
 func (p Ping) Serialize() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUInt(buf, PingCode)
+	err := soul.WriteUint32(buf, uint32(PingCode))
 	if err != nil {
 		return nil, err
 	}
