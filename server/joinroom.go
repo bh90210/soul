@@ -21,7 +21,7 @@ type JoinRoom struct {
 
 type User struct {
 	Username string
-	Status   soul.UserStatus
+	Status   UserStatus
 
 	AverageSpeed int
 	UploadNumber int
@@ -102,7 +102,7 @@ func (j *JoinRoom) Deserialize(reader *bytes.Reader) error {
 			return err
 		}
 
-		j.Users[i].Status = soul.UserStatus(status)
+		j.Users[i].Status = UserStatus(status)
 	}
 
 	stats, err := soul.ReadUint32(reader)

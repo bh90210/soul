@@ -13,7 +13,7 @@ const UserJoinedRoomCode Code = 16
 type UserJoinedRoom struct {
 	Room        string
 	Username    string
-	Status      soul.UserStatus
+	Status      UserStatus
 	Speed       int
 	Uploads     int
 	Files       int
@@ -53,7 +53,7 @@ func (u *UserJoinedRoom) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	u.Status = soul.UserStatus(status)
+	u.Status = UserStatus(status)
 
 	u.Speed, err = soul.ReadInt(reader)
 	if err != nil {

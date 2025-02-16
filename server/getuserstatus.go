@@ -13,7 +13,7 @@ const GetUserStatusCode Code = 7
 
 type GetUserStatus struct {
 	Username   string
-	Status     soul.UserStatus
+	Status     UserStatus
 	Privileged bool
 }
 
@@ -59,7 +59,7 @@ func (g *GetUserStatus) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	g.Status = soul.UserStatus(status)
+	g.Status = UserStatus(status)
 
 	g.Privileged, err = soul.ReadBool(reader)
 	if err != nil {

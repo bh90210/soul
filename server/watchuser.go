@@ -14,7 +14,7 @@ const WatchUserCode Code = 5
 type WatchUser struct {
 	Username     string
 	Exists       bool
-	Status       soul.UserStatus
+	Status       UserStatus
 	AverageSpeed int
 	UploadNumber int
 	Files        int
@@ -67,7 +67,7 @@ func (w *WatchUser) Deserialize(reader io.Reader) error {
 			return err
 		}
 
-		w.Status = soul.UserStatus(status)
+		w.Status = UserStatus(status)
 
 		w.AverageSpeed, err = soul.ReadInt(reader)
 		if err != nil {
@@ -90,7 +90,7 @@ func (w *WatchUser) Deserialize(reader io.Reader) error {
 		}
 	}
 
-	if w.Status == soul.Online || w.Status == soul.Away {
+	if w.Status == Online || w.Status == Away {
 		w.CountryCode, err = soul.ReadString(reader)
 		if err != nil {
 			return err

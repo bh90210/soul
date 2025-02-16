@@ -10,7 +10,7 @@ const SetStatusCode Code = 28
 
 type SetStatus struct{}
 
-func (s SetStatus) Serialize(status soul.UserStatus) ([]byte, error) {
+func (s SetStatus) Serialize(status UserStatus) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := soul.WriteUint32(buf, uint32(SetStatusCode))
 	if err != nil {
