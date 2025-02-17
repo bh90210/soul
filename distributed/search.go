@@ -8,17 +8,17 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const DistribSearchCode Code = 3
+const SearchCode Code = 3
 
-type DistribSearch struct {
+type Search struct {
 	Username string
 	Token    int
 	Query    string
 }
 
-func (d DistribSearch) Serialize(token int, username, query string) ([]byte, error) {
+func (d Search) Serialize(token int, username, query string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint8(buf, uint8(DistribSearchCode))
+	err := soul.WriteUint8(buf, uint8(SearchCode))
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (d DistribSearch) Serialize(token int, username, query string) ([]byte, err
 	return soul.Pack(buf.Bytes())
 }
 
-func (d *DistribSearch) Deserialize(reader *bytes.Reader) error {
+func (d *Search) Deserialize(reader *bytes.Reader) error {
 	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
@@ -57,9 +57,9 @@ func (d *DistribSearch) Deserialize(reader *bytes.Reader) error {
 		return err
 	}
 
-	if code != uint8(DistribSearchCode) {
+	if code != uint8(SearchCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
-			fmt.Errorf("expected code %d, got %d", DistribSearchCode, code))
+			fmt.Errorf("expected code %d, got %d", SearchCode, code))
 	}
 
 	_, err = soul.ReadUint32(reader)

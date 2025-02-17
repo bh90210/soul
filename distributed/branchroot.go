@@ -8,15 +8,15 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const DistribBranchRootCode Code = 5
+const BranchRootCode Code = 5
 
-type DistribBranchRoot struct {
+type BranchRoot struct {
 	Root string
 }
 
-func (d DistribBranchRoot) Serialize(root string) ([]byte, error) {
+func (d BranchRoot) Serialize(root string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint8(buf, uint8(DistribBranchRootCode))
+	err := soul.WriteUint8(buf, uint8(BranchRootCode))
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (d DistribBranchRoot) Serialize(root string) ([]byte, error) {
 	return soul.Pack(buf.Bytes())
 }
 
-func (d *DistribBranchRoot) Deserialize(reader *bytes.Reader) error {
+func (d *BranchRoot) Deserialize(reader *bytes.Reader) error {
 	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
@@ -40,9 +40,9 @@ func (d *DistribBranchRoot) Deserialize(reader *bytes.Reader) error {
 		return err
 	}
 
-	if code != uint8(DistribBranchRootCode) {
+	if code != uint8(BranchRootCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
-			fmt.Errorf("expected code %d, got %d", DistribBranchRootCode, code))
+			fmt.Errorf("expected code %d, got %d", BranchRootCode, code))
 	}
 
 	d.Root, err = soul.ReadString(reader)

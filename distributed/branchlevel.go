@@ -8,16 +8,16 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const DistribBranchLevelCode Code = 4
+const BranchLevelCode Code = 4
 
-type DistribBranchLevel struct {
+type BranchLevel struct {
 	Level int
 }
 
-func (d DistribBranchLevel) Serialize(branchLevel int) ([]byte, error) {
+func (d BranchLevel) Serialize(branchLevel int) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	err := soul.WriteUint8(buf, uint8(DistribBranchLevelCode))
+	err := soul.WriteUint8(buf, uint8(BranchLevelCode))
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (d DistribBranchLevel) Serialize(branchLevel int) ([]byte, error) {
 	return soul.Pack(buf.Bytes())
 }
 
-func (d *DistribBranchLevel) Deserialize(reader *bytes.Reader) error {
+func (d *BranchLevel) Deserialize(reader *bytes.Reader) error {
 	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
@@ -46,9 +46,9 @@ func (d *DistribBranchLevel) Deserialize(reader *bytes.Reader) error {
 		return err
 	}
 
-	if code != uint8(DistribBranchLevelCode) {
+	if code != uint8(BranchLevelCode) {
 		return errors.Join(soul.ErrMismatchingCodes,
-			fmt.Errorf("expected code %d, got %d", DistribBranchLevelCode, code))
+			fmt.Errorf("expected code %d, got %d", BranchLevelCode, code))
 	}
 
 	d.Level, err = soul.ReadInt32ToInt(reader)
