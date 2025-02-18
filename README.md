@@ -1,3 +1,6 @@
+[![Go Coverage](https://github.com/bh90210/soul/wiki/coverage.svg)](https://raw.githack.com/wiki/bh90210/soul/coverage.html)
+[![Go Report](https://goreportcard.com/badge/github.com/bh90210/soul)](https://goreportcard.com/report/github.com/bh90210/soul)
+
 # Soul
 
 A golang implementation of the soulseek protocol.
