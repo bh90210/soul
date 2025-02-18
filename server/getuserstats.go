@@ -54,22 +54,22 @@ func (g *GetUserStats) Deserialize(reader *bytes.Reader) error {
 		return err
 	}
 
-	g.Speed, err = soul.ReadInt(reader)
+	g.Speed, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	g.Uploads, err = soul.ReadInt(reader)
+	g.Uploads, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	g.Files, err = soul.ReadInt(reader)
+	g.Files, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	g.Directories, err = soul.ReadInt(reader)
+	g.Directories, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

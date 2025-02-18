@@ -51,7 +51,7 @@ func (c *CantConnectToPeer) Deserialize(reader *bytes.Reader) error {
 			fmt.Errorf("expected code %d, got %d", CantConnectToPeerCode, code))
 	}
 
-	c.Token, err = soul.ReadInt(reader)
+	c.Token, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

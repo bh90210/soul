@@ -65,7 +65,7 @@ func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
 
 	g.IP = soul.ReadIP(ip)
 
-	g.Port, err = soul.ReadInt(reader)
+	g.Port, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	g.ObfuscatedPort, err = soul.ReadInt(reader)
+	g.ObfuscatedPort, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

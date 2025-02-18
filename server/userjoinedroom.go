@@ -55,27 +55,27 @@ func (u *UserJoinedRoom) Deserialize(reader io.Reader) error {
 
 	u.Status = UserStatus(status)
 
-	u.Speed, err = soul.ReadInt(reader)
+	u.Speed, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	u.Uploads, err = soul.ReadInt(reader)
+	u.Uploads, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	u.Files, err = soul.ReadInt(reader)
+	u.Files, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	u.Directories, err = soul.ReadInt(reader)
+	u.Directories, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	u.Slots, err = soul.ReadInt(reader)
+	u.Slots, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

@@ -31,7 +31,7 @@ func (w *WishlistInterval) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", WishlistIntervalCode, code))
 	}
 
-	w.Interval, err = soul.ReadInt(reader)
+	w.Interval, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

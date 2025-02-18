@@ -72,7 +72,7 @@ func (d *Search) Deserialize(reader *bytes.Reader) error {
 		return err
 	}
 
-	d.Token, err = soul.ReadInt(reader)
+	d.Token, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

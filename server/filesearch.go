@@ -57,7 +57,7 @@ func (f *FileSearch) Deserialize(reader *bytes.Reader) error {
 		return err
 	}
 
-	f.Token, err = soul.ReadInt(reader)
+	f.Token, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

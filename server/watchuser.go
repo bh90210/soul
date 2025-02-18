@@ -69,22 +69,22 @@ func (w *WatchUser) Deserialize(reader io.Reader) error {
 
 		w.Status = UserStatus(status)
 
-		w.AverageSpeed, err = soul.ReadInt(reader)
+		w.AverageSpeed, err = soul.ReadUint32ToInt(reader)
 		if err != nil {
 			return err
 		}
 
-		w.UploadNumber, err = soul.ReadInt(reader)
+		w.UploadNumber, err = soul.ReadUint32ToInt(reader)
 		if err != nil {
 			return err
 		}
 
-		w.Files, err = soul.ReadInt(reader)
+		w.Files, err = soul.ReadUint32ToInt(reader)
 		if err != nil {
 			return err
 		}
 
-		w.Directories, err = soul.ReadInt(reader)
+		w.Directories, err = soul.ReadUint32ToInt(reader)
 		if err != nil {
 			return err
 		}

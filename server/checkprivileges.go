@@ -40,7 +40,7 @@ func (c *CheckPrivileges) Deserialize(reader *bytes.Reader) error {
 			fmt.Errorf("expected code %d, got %d", CheckPrivilegesCode, code))
 	}
 
-	c.TimeLeft, err = soul.ReadInt(reader)
+	c.TimeLeft, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

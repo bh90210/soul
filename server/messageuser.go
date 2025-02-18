@@ -55,12 +55,12 @@ func (m *MessageUser) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", MessageUserCode, code))
 	}
 
-	m.UserID, err = soul.ReadInt(reader)
+	m.UserID, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	m.Timestamp, err = soul.ReadInt(reader)
+	m.Timestamp, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

@@ -43,9 +43,9 @@ func Pack(data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func ReadUint32(reader io.Reader) (uint32, error) {
-	var val uint32
-	err := binary.Read(reader, binary.LittleEndian, &val)
+func ReadUint8(buf io.Reader) (uint8, error) {
+	var val uint8
+	err := binary.Read(buf, binary.LittleEndian, &val)
 	if err != nil {
 		return 0, err
 	}
@@ -53,8 +53,35 @@ func ReadUint32(reader io.Reader) (uint32, error) {
 	return val, nil
 }
 
-func ReadInt(reader io.Reader) (int, error) {
-	v, err := ReadUint32(reader)
+func WriteUint8(buf io.Writer, val uint8) error {
+	return binary.Write(buf, binary.LittleEndian, val)
+}
+
+func ReadInt32ToInt(buf io.Reader) (int, error) {
+	val, err := ReadInt32(buf)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(val), nil
+}
+
+func ReadInt32(buf io.Reader) (int32, error) {
+	var val int32
+	err := binary.Read(buf, binary.LittleEndian, &val)
+	if err != nil {
+		return 0, err
+	}
+
+	return val, nil
+}
+
+func WriteInt32(buf io.Writer, val int32) error {
+	return binary.Write(buf, binary.LittleEndian, val)
+}
+
+func ReadUint32ToInt(buf io.Reader) (int, error) {
+	v, err := ReadUint32(buf)
 	if err != nil {
 		return 0, err
 	}
@@ -62,12 +89,54 @@ func ReadInt(reader io.Reader) (int, error) {
 	return int(v), nil
 }
 
-func WriteUint32(buf *bytes.Buffer, val uint32) error {
+func ReadUint32(buf io.Reader) (uint32, error) {
+	var val uint32
+	err := binary.Read(buf, binary.LittleEndian, &val)
+	if err != nil {
+		return 0, err
+	}
+
+	return val, nil
+}
+
+func WriteUint32(buf io.Writer, val uint32) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
-func ReadUint8(reader io.Reader) (uint8, error) {
-	var val uint8
+func ReadUint64ToInt(buf io.Reader) (int, error) {
+	val, err := ReadUint64(buf)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(val), nil
+}
+
+func ReadInt64ToInt(buf io.Reader) (int, error) {
+	val, err := ReadInt64(buf)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(val), nil
+}
+
+func ReadInt64(buf io.Reader) (int64, error) {
+	var val int64
+	err := binary.Read(buf, binary.LittleEndian, &val)
+	if err != nil {
+		return 0, err
+	}
+
+	return val, nil
+}
+
+func WriteInt64(buf io.Writer, val int64) error {
+	return binary.Write(buf, binary.LittleEndian, val)
+}
+
+func ReadUint64(reader io.Reader) (uint64, error) {
+	var val uint64
 	err := binary.Read(reader, binary.LittleEndian, &val)
 	if err != nil {
 		return 0, err
@@ -76,60 +145,18 @@ func ReadUint8(reader io.Reader) (uint8, error) {
 	return val, nil
 }
 
-func WriteUint8(buf *bytes.Buffer, val uint8) error {
+func WriteUint64(buf io.Writer, val uint64) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
-func ReadInt64ToInt(reader io.Reader) (int, error) {
-	var val int64
-	err := binary.Read(reader, binary.LittleEndian, &val)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(val), nil
-}
-
-func WriteInt64(buf *bytes.Buffer, val int64) error {
-	return binary.Write(buf, binary.LittleEndian, val)
-}
-
-func ReadInt32ToInt(reader io.Reader) (int, error) {
-	var val int32
-	err := binary.Read(reader, binary.LittleEndian, &val)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(val), nil
-}
-
-func WriteInt32(buf *bytes.Buffer, val int32) error {
-	return binary.Write(buf, binary.LittleEndian, val)
-}
-
-func NewString(content string) ([]byte, error) {
+func NewString(val string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	_, err := buf.WriteString(content)
+	_, err := buf.WriteString(val)
 	if err != nil {
 		return nil, err
 	}
 
 	return Pack(buf.Bytes())
-}
-
-func WriteString(buf *bytes.Buffer, content string) error {
-	c, err := NewString(content)
-	if err != nil {
-		return err
-	}
-
-	err = binary.Write(buf, binary.LittleEndian, c)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func ReadString(reader io.Reader) (string, error) {
@@ -147,6 +174,20 @@ func ReadString(reader io.Reader) (string, error) {
 	return string(buf), nil
 }
 
+func WriteString(buf io.Writer, val string) error {
+	c, err := NewString(val)
+	if err != nil {
+		return err
+	}
+
+	err = binary.Write(buf, binary.LittleEndian, c)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func ReadBool(reader io.Reader) (bool, error) {
 	var val uint8
 
@@ -158,7 +199,7 @@ func ReadBool(reader io.Reader) (bool, error) {
 	return val == 1, nil
 }
 
-func WriteBool(buf *bytes.Buffer, val bool) error {
+func WriteBool(buf io.Writer, val bool) error {
 	var b uint8
 	if val {
 		b = 1
@@ -182,7 +223,7 @@ func ReadBytes(reader io.Reader) ([]byte, error) {
 	return buf, nil
 }
 
-func WriteBytes(buf *bytes.Buffer, content []byte) error {
+func WriteBytes(buf io.Writer, content []byte) error {
 	err := binary.Write(buf, binary.LittleEndian, uint32(len(content)))
 	if err != nil {
 		return err

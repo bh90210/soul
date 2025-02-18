@@ -57,7 +57,7 @@ func (p *PossibleParents) Deserialize(reader io.Reader) error {
 
 		parent.IP = soul.ReadIP(ip)
 
-		parent.Port, err = soul.ReadInt(reader)
+		parent.Port, err = soul.ReadUint32ToInt(reader)
 		if err != nil {
 			return err
 		}

@@ -84,12 +84,12 @@ func (c *ConnectToPeer) Deserialize(reader io.Reader) error {
 
 	c.IP = soul.ReadIP(ip)
 
-	c.Port, err = soul.ReadInt(reader)
+	c.Port, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	c.Token, err = soul.ReadInt(reader)
+	c.Token, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (c *ConnectToPeer) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	c.ObfuscatedPort, err = soul.ReadInt(reader)
+	c.ObfuscatedPort, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

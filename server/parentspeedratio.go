@@ -30,7 +30,7 @@ func (p *ParentSpeedRatio) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", ParentSpeedRatioCode, code))
 	}
 
-	p.SpeedRatio, err = soul.ReadInt(reader)
+	p.SpeedRatio, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

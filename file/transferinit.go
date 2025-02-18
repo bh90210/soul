@@ -22,7 +22,7 @@ func (t TransferInit) Serialize(token int) ([]byte, error) {
 }
 
 func (t *TransferInit) Deserialize(reader *bytes.Reader) (err error) {
-	t.Token, err = soul.ReadInt(reader)
+	t.Token, err = soul.ReadUint32ToInt(reader)
 	if err != nil {
 		return
 	}
