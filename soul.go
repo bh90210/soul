@@ -57,15 +57,6 @@ func WriteUint8(buf io.Writer, val uint8) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
-func ReadInt32ToInt(buf io.Reader) (int, error) {
-	val, err := ReadInt32(buf)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(val), nil
-}
-
 func ReadInt32(buf io.Reader) (int32, error) {
 	var val int32
 	err := binary.Read(buf, binary.LittleEndian, &val)
@@ -80,13 +71,13 @@ func WriteInt32(buf io.Writer, val int32) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
-func ReadUint32ToInt(buf io.Reader) (int, error) {
-	v, err := ReadUint32(buf)
+func ReadInt32ToInt(buf io.Reader) (int, error) {
+	val, err := ReadInt32(buf)
 	if err != nil {
 		return 0, err
 	}
 
-	return int(v), nil
+	return int(val), nil
 }
 
 func ReadUint32(buf io.Reader) (uint32, error) {
@@ -103,36 +94,13 @@ func WriteUint32(buf io.Writer, val uint32) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
-func ReadUint64ToInt(buf io.Reader) (int, error) {
-	val, err := ReadUint64(buf)
+func ReadUint32ToInt(buf io.Reader) (int, error) {
+	v, err := ReadUint32(buf)
 	if err != nil {
 		return 0, err
 	}
 
-	return int(val), nil
-}
-
-func ReadInt64ToInt(buf io.Reader) (int, error) {
-	val, err := ReadInt64(buf)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(val), nil
-}
-
-func ReadInt64(buf io.Reader) (int64, error) {
-	var val int64
-	err := binary.Read(buf, binary.LittleEndian, &val)
-	if err != nil {
-		return 0, err
-	}
-
-	return val, nil
-}
-
-func WriteInt64(buf io.Writer, val int64) error {
-	return binary.Write(buf, binary.LittleEndian, val)
+	return int(v), nil
 }
 
 func ReadUint64(reader io.Reader) (uint64, error) {
@@ -147,6 +115,15 @@ func ReadUint64(reader io.Reader) (uint64, error) {
 
 func WriteUint64(buf io.Writer, val uint64) error {
 	return binary.Write(buf, binary.LittleEndian, val)
+}
+
+func ReadUint64ToInt(buf io.Reader) (int, error) {
+	val, err := ReadUint64(buf)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(val), nil
 }
 
 func NewString(val string) ([]byte, error) {
@@ -239,7 +216,7 @@ func WriteBytes(buf io.Writer, content []byte) error {
 
 func ReadIP(val uint32) net.IP {
 	ip := make(net.IP, 4)
-	binary.BigEndian.PutUint32(ip, val)
+	binary.BigEndian.PutUint32(ip, val) // TODO: check why endianess is different than the rest.
 
 	return ip
 }

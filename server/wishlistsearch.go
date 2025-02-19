@@ -10,14 +10,14 @@ const WishlistSearchCode Code = 103
 
 type WishlistSearch struct{}
 
-func (w WishlistSearch) Serialize(token int, serachQuery string) ([]byte, error) {
+func (w WishlistSearch) Serialize(token uint32, serachQuery string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := soul.WriteUint32(buf, uint32(WishlistSearchCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(buf, uint32(token))
+	err = soul.WriteUint32(buf, token)
 	if err != nil {
 		return nil, err
 	}

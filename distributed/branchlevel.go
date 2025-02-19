@@ -16,7 +16,6 @@ type BranchLevel struct {
 
 func (d BranchLevel) Serialize(branchLevel int) ([]byte, error) {
 	buf := new(bytes.Buffer)
-
 	err := soul.WriteUint8(buf, uint8(BranchLevelCode))
 	if err != nil {
 		return nil, err
