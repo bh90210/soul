@@ -68,7 +68,7 @@ func ReadMessage(connection net.Conn) (io.Reader, int, Code, error) {
 	return message, int(size), Code(code), nil
 }
 
-func SendMessage(connection net.Conn, message []byte) (int, error) {
+func WriteMessage(connection net.Conn, message []byte) (int, error) {
 	n, err := connection.Write(message)
 	if err != nil {
 		return 0, err

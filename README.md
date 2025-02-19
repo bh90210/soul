@@ -1,3 +1,4 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/bh90210/soul.svg)](https://pkg.go.dev/github.com/bh90210/soul)
 [![codecov](https://codecov.io/gh/bh90210/soul/graph/badge.svg?token=1VXJR0HV3C)](https://codecov.io/gh/bh90210/soul)
 [![Go Report](https://goreportcard.com/badge/github.com/bh90210/soul)](https://goreportcard.com/report/github.com/bh90210/soul)
 
