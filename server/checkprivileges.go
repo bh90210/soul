@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/bh90210/soul"
 )
@@ -24,7 +25,7 @@ func (c CheckPrivileges) Serialize() ([]byte, error) {
 	return soul.Pack(buf.Bytes())
 }
 
-func (c *CheckPrivileges) Deserialize(reader *bytes.Reader) error {
+func (c *CheckPrivileges) Deserialize(reader io.Reader) error {
 	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err

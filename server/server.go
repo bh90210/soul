@@ -27,7 +27,7 @@ const (
 
 var ErrDifferentPacketSize = errors.New("the declared size of the package does not match the size of the actual read")
 
-func ReadMessage(connection net.Conn) (io.Reader, int, Code, error) {
+func MessageRead(connection net.Conn) (io.Reader, int, Code, error) {
 	message := new(bytes.Buffer)
 
 	// We need to make two reads from the connection to determine the code of the message.
@@ -68,7 +68,7 @@ func ReadMessage(connection net.Conn) (io.Reader, int, Code, error) {
 	return message, int(size), Code(code), nil
 }
 
-func WriteMessage(connection net.Conn, message []byte) (int, error) {
+func MessageWrite(connection net.Conn, message []byte) (int, error) {
 	n, err := connection.Write(message)
 	if err != nil {
 		return 0, err

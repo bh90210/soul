@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/bh90210/soul"
 )
@@ -29,7 +30,7 @@ func (d BranchRoot) Serialize(root string) ([]byte, error) {
 	return soul.Pack(buf.Bytes())
 }
 
-func (d *BranchRoot) Deserialize(reader *bytes.Reader) error {
+func (d *BranchRoot) Deserialize(reader io.Reader) error {
 	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err

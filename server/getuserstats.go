@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/bh90210/soul"
 )
@@ -33,7 +34,7 @@ func (g GetUserStats) Serialize(username string) ([]byte, error) {
 	return soul.Pack(buf.Bytes())
 }
 
-func (g *GetUserStats) Deserialize(reader *bytes.Reader) error {
+func (g *GetUserStats) Deserialize(reader io.Reader) error {
 	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err

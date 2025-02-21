@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/bh90210/soul"
 )
@@ -54,7 +55,7 @@ func (j JoinRoom) Serialize(room string, private bool) ([]byte, error) {
 	return soul.Pack(buf.Bytes())
 }
 
-func (j *JoinRoom) Deserialize(reader *bytes.Reader) error {
+func (j *JoinRoom) Deserialize(reader io.Reader) error {
 	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err

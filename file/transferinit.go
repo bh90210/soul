@@ -2,6 +2,7 @@ package file
 
 import (
 	"bytes"
+	"io"
 
 	"github.com/bh90210/soul"
 )
@@ -21,7 +22,7 @@ func (t TransferInit) Serialize(token uint32) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (t *TransferInit) Deserialize(reader *bytes.Reader) (err error) {
+func (t *TransferInit) Deserialize(reader io.Reader) (err error) {
 	t.Token, err = soul.ReadUint32(reader)
 	if err != nil {
 		return

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/bh90210/soul"
 )
@@ -35,7 +36,7 @@ func (c CantConnectToPeer) Serialize(token uint32, username string) ([]byte, err
 	return soul.Pack(buf.Bytes())
 }
 
-func (c *CantConnectToPeer) Deserialize(reader *bytes.Reader) error {
+func (c *CantConnectToPeer) Deserialize(reader io.Reader) error {
 	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err

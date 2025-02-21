@@ -8,12 +8,12 @@ import (
 )
 
 type Offset struct {
-	Offset int
+	Offset uint64
 }
 
-func (o Offset) Serialize(offset int) ([]byte, error) {
+func (o Offset) Serialize(offset uint64) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint64(buf, uint64(offset))
+	err := soul.WriteUint64(buf, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (o Offset) Serialize(offset int) ([]byte, error) {
 }
 
 func (o *Offset) Deserialize(reader io.Reader) (err error) {
-	o.Offset, err = soul.ReadUint64ToInt(reader)
+	o.Offset, err = soul.ReadUint64(reader)
 	if err != nil {
 		return err
 	}

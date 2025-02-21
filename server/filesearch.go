@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/bh90210/soul"
 )
@@ -36,7 +37,7 @@ func (f FileSearch) Serialize(token uint32, searchQuery string) ([]byte, error) 
 	return soul.Pack(buf.Bytes())
 }
 
-func (f *FileSearch) Deserialize(reader *bytes.Reader) error {
+func (f *FileSearch) Deserialize(reader io.Reader) error {
 	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err

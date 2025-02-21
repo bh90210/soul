@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/bh90210/soul"
 )
@@ -35,7 +36,7 @@ func (d EmbeddedMessage) Serialize(code Code, message []byte) ([]byte, error) {
 	return soul.Pack(buf.Bytes())
 }
 
-func (d *EmbeddedMessage) Deserialize(reader *bytes.Reader) error {
+func (d *EmbeddedMessage) Deserialize(reader io.Reader) error {
 	_, err := soul.ReadUint32(reader) // size
 	if err != nil {
 		return err
