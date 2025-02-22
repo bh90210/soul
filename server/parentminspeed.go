@@ -8,7 +8,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const ParentMinSpeedCode Code = 83
+const ParentMinSpeedCode soul.ServerCode = 83
 
 type ParentMinSpeed struct {
 	MinSpeed int

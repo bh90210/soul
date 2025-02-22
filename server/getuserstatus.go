@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const GetUserStatusCode Code = 7
+const GetUserStatusCode soul.ServerCode = 7
 
 type GetUserStatus struct {
 	Username   string

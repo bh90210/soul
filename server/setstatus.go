@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const SetStatusCode Code = 28
+const SetStatusCode soul.ServerCode = 28
 
 type SetStatus struct{}
 

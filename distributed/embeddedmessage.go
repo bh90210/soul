@@ -9,14 +9,14 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const EmbeddedMessageCode Code = 93
+const EmbeddedMessageCode soul.DistributedCode = 93
 
 type EmbeddedMessage struct {
-	Code    Code
+	Code    soul.DistributedCode
 	Message []byte
 }
 
-func (d EmbeddedMessage) Serialize(code Code, message []byte) ([]byte, error) {
+func (d EmbeddedMessage) Serialize(code soul.DistributedCode, message []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := soul.WriteUint8(buf, uint8(EmbeddedMessageCode))
 	if err != nil {
@@ -57,7 +57,7 @@ func (d *EmbeddedMessage) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	d.Code = Code(code)
+	d.Code = soul.DistributedCode(code)
 
 	d.Message, err = soul.ReadBytes(reader)
 	if err != nil {

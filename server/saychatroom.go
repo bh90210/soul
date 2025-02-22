@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const SayChatroomCode Code = 13
+const SayChatroomCode soul.ServerCode = 13
 
 type SayChatroom struct {
 	Room     string

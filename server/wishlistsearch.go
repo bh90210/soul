@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const WishlistSearchCode Code = 103
+const WishlistSearchCode soul.ServerCode = 103
 
 type WishlistSearch struct{}
 

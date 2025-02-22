@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const WatchUserCode Code = 5
+const WatchUserCode soul.ServerCode = 5
 
 type WatchUser struct {
 	Username     string

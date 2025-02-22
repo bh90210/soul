@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const FileSearchCode Code = 26
+const FileSearchCode soul.ServerCode = 26
 
 type FileSearch struct {
 	Username    string

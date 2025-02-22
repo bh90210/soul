@@ -8,7 +8,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const ParentSpeedRatioCode Code = 84
+const ParentSpeedRatioCode soul.ServerCode = 84
 
 type ParentSpeedRatio struct {
 	SpeedRatio int

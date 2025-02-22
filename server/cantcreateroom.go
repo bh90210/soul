@@ -8,7 +8,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const CantCreateRoomCode Code = 1003
+const CantCreateRoomCode soul.ServerCode = 1003
 
 type CantCreateRoom struct {
 	Room string

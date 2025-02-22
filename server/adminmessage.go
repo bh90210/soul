@@ -8,7 +8,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const AdminMessageCode Code = 66
+const AdminMessageCode soul.ServerCode = 66
 
 type AdminMessage struct {
 	Message string

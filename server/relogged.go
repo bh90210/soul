@@ -8,7 +8,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const ReloggedCode Code = 41
+const ReloggedCode soul.ServerCode = 41
 
 type Relogged struct{}
 

@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const MessageAckedCode Code = 23
+const MessageAckedCode soul.ServerCode = 23
 
 type MessageAcked struct{}
 

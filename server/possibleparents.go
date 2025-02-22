@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const PossibleParentsCode Code = 102
+const PossibleParentsCode soul.ServerCode = 102
 
 type PossibleParents struct {
 	Parents []Parent

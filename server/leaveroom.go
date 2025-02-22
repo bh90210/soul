@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const LeaveRoomCode Code = 15
+const LeaveRoomCode soul.ServerCode = 15
 
 type LeaveRoom struct {
 	Room string

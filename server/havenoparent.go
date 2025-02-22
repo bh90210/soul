@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const HaveNoParentCode Code = 71
+const HaveNoParentCode soul.ServerCode = 71
 
 type HaveNoParent struct{}
 

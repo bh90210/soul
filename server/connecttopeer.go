@@ -10,7 +10,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const ConnectToPeerCode Code = 18
+const ConnectToPeerCode soul.ServerCode = 18
 
 type ConnectToPeer struct {
 	Username       string

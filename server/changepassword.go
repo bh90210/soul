@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const ChangePasswordCode Code = 142
+const ChangePasswordCode soul.ServerCode = 142
 
 type ChangePassword struct {
 	Pass string

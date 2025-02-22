@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const PrivateRoomDisownCode Code = 137
+const PrivateRoomDisownCode soul.ServerCode = 137
 
 type PrivateRoomDisown struct{}
 

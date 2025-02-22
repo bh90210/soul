@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const SearchCode Code = 3
+const SearchCode soul.DistributedCode = 3
 
 type Search struct {
 	Username string

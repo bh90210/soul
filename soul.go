@@ -9,6 +9,11 @@ import (
 	"net"
 )
 
+const (
+	MajorVersion uint32 = 0
+	MinorVersion uint32 = 1
+)
+
 // ConnectionType represents the type of connection.
 type ConnectionType string
 
@@ -23,10 +28,80 @@ const (
 
 var ErrMismatchingCodes = errors.New("mismatching codes")
 
-const (
-	MajorVersion uint32 = 1
-	MinorVersion uint32 = 0
-)
+var ErrDifferentPacketSize = errors.New("the declared size of the package does not match the size of the actual read")
+
+type ServerCode int
+type PeerInitCode int
+type PeerCode int
+type DistributedCode int
+
+type Code interface {
+	ServerCode | PeerInitCode | PeerCode | DistributedCode
+}
+
+func MessageRead[C Code](c C, connection net.Conn) (io.Reader, int, C, error) {
+	message := new(bytes.Buffer)
+
+	// We need to make two reads from the connection to determine the code of the message.
+	// Because we need these information down the line we TeeRead them to the message.
+	// Note that there is no "message header" in the protocol, we just read the size and code
+	// from the "head" of the packet.
+	messageHeader := io.TeeReader(connection, message)
+
+	// Read the size of the packet.
+	size, err := ReadUint32(messageHeader)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	// Read the code of the message.
+	var code C
+	switch any(c).(type) {
+	case PeerInitCode, DistributedCode:
+		c, err := ReadUint8(messageHeader)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+
+		code = C(c)
+
+	case ServerCode, PeerCode:
+		c, err := ReadUint32(messageHeader)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+
+		code = C(c)
+	}
+
+	// Now we simply copy a packet size read from the connection to the message buffer.
+	// This continues writing the message buffer from where the TeeReader left off.
+	// The size of the actual message read needs -4 to account for the packet
+	// size and code reads that happened above.
+	n, err := io.CopyN(message, connection, int64(size-4))
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	// Conversely, we need to add 4 to the size of the total read to account for the
+	// size and code reads that are missing from CopyN.
+	n += 4
+
+	if int64(size) != n {
+		return nil, 0, 0, ErrDifferentPacketSize
+	}
+
+	return message, int(size), code, nil
+}
+
+func MessageWrite(connection net.Conn, message []byte) (int, error) {
+	n, err := connection.Write(message)
+	if err != nil {
+		return 0, err
+	}
+
+	return n, nil
+}
 
 func Pack(data []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)

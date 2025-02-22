@@ -1,26 +1,76 @@
 package soul
 
 import (
-	"math"
+	"bytes"
+	"fmt"
+	"io"
 	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestReadIP(t *testing.T) {
+func TestSendMessage(t *testing.T) {
 	tests := map[string]struct {
-		input uint32
-		want  net.IP
+		message    []byte
+		messageLen int
+		want       string
+		error      bool
 	}{
-		"7.91.205.21":     {input: 123456789, want: []byte{7, 91, 205, 21}},
-		"255.255.255.255": {input: math.MaxUint32, want: []byte{255, 255, 255, 255}},
+		"hello world": {
+			message:    []byte{7, 91, 205, 21},
+			want:       "hello world",
+			messageLen: 4,
+		},
+		"error": {
+			message: []byte{0},
+			error:   true,
+		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := ReadIP(tc.input)
-			assert.Equal(t, tc.want, got)
+			server, client := net.Pipe()
+
+			if tc.error {
+				server.Close()
+				_, err := MessageWrite(client, tc.message)
+				assert.Error(t, err)
+
+			} else {
+				go func() {
+					buf := new(bytes.Buffer)
+					n, err := buf.ReadFrom(server)
+					assert.NoError(t, err)
+					assert.Equal(t, tc.messageLen, n)
+					assert.Equal(t, tc.message, buf.Bytes())
+
+					server.Close()
+				}()
+
+				i, err := MessageWrite(client, tc.message)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.messageLen, i)
+			}
+
+			client.Close()
+		})
+	}
+}
+
+func TestReadMessage(t *testing.T) {
+	tests := map[string]struct {
+		want struct {
+			reader io.Reader
+			size   int
+			code   ServerCode
+		}
+		error bool
+	}{}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			fmt.Println(tc)
 		})
 	}
 }

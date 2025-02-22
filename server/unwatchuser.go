@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const UnwatchUserCode Code = 6
+const UnwatchUserCode soul.ServerCode = 6
 
 type UnwatchUser struct{}
 

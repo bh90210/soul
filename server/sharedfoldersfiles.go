@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const SharedFoldersFilesCode Code = 35
+const SharedFoldersFilesCode soul.ServerCode = 35
 
 type SharedFoldersFiles struct{}
 

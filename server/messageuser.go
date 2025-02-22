@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const MessageUserCode Code = 22
+const MessageUserCode soul.ServerCode = 22
 
 type MessageUser struct {
 	UserID    int

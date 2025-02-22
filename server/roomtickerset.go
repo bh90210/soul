@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const RoomTickerSetCode Code = 116
+const RoomTickerSetCode soul.ServerCode = 116
 
 type RoomTickerSet struct{}
 

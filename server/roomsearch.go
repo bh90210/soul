@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const RoomSearchCode Code = 120
+const RoomSearchCode soul.ServerCode = 120
 
 type RoomSearch struct{}
 

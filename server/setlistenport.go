@@ -7,7 +7,7 @@ import (
 )
 
 // SetListenPortCode SetWaitPort.
-const SetListenPortCode Code = 2
+const SetListenPortCode soul.ServerCode = 2
 
 // SetListenPort SetListenPort.
 type SetListenPort struct{}

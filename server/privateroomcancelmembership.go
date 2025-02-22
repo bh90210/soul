@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const PrivateRoomCancelMembershipCode Code = 136
+const PrivateRoomCancelMembershipCode soul.ServerCode = 136
 
 type PrivateRoomCancelMembership struct{}
 

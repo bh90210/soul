@@ -9,7 +9,7 @@ import (
 )
 
 // Code ExcludedSearchPhrases.
-const ExcludedSearchPhrasesCode Code = 160
+const ExcludedSearchPhrasesCode soul.ServerCode = 160
 
 type ExcludedSearchPhrases struct {
 	Phrases []string

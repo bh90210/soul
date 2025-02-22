@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const BranchRootCode Code = 5
+const BranchRootCode soul.DistributedCode = 5
 
 type BranchRoot struct {
 	Root string

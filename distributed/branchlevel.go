@@ -9,13 +9,13 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const BranchLevelCode Code = 4
+const BranchLevelCode soul.DistributedCode = 4
 
 type BranchLevel struct {
-	Level int
+	Level int32
 }
 
-func (d BranchLevel) Serialize(branchLevel int) ([]byte, error) {
+func (d BranchLevel) Serialize(branchLevel int32) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := soul.WriteUint8(buf, uint8(BranchLevelCode))
 	if err != nil {
@@ -27,7 +27,7 @@ func (d BranchLevel) Serialize(branchLevel int) ([]byte, error) {
 		return nil, err
 	}
 
-	err = soul.WriteInt32(buf, int32(branchLevel))
+	err = soul.WriteInt32(buf, branchLevel)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (d *BranchLevel) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", BranchLevelCode, code))
 	}
 
-	d.Level, err = soul.ReadInt32ToInt(reader)
+	d.Level, err = soul.ReadInt32(reader)
 	if err != nil {
 		return err
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const AcceptChildrenCode Code = 100
+const AcceptChildrenCode soul.ServerCode = 100
 
 type AcceptChildren struct{}
 

@@ -8,7 +8,7 @@ import (
 	"github.com/bh90210/soul"
 )
 
-const UserJoinedRoomCode Code = 16
+const UserJoinedRoomCode soul.ServerCode = 16
 
 type UserJoinedRoom struct {
 	Room        string
