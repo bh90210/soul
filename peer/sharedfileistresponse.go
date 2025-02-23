@@ -9,9 +9,10 @@ import (
 	"log"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
-const SharedFileListResponseCode Code = 5
+const SharedFileListResponseCode soul.PeerCode = 5
 
 type SharedFileListResponse struct {
 	Directories        []Directory
@@ -37,14 +38,14 @@ type Attribute struct {
 
 func (s SharedFileListResponse) Serialize(directories, privateDirectories []Directory) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(SharedFileListResponseCode))
+	err := internal.WriteUint32(buf, uint32(SharedFileListResponseCode))
 	if err != nil {
 		return nil, err
 	}
 
 	gzw := gzip.NewWriter(buf)
 
-	err = soul.WriteUint32(gzw, uint32(len(directories)))
+	err = internal.WriteUint32(gzw, uint32(len(directories)))
 	if err != nil {
 		return nil, err
 	}
@@ -54,12 +55,12 @@ func (s SharedFileListResponse) Serialize(directories, privateDirectories []Dire
 		return nil, err
 	}
 
-	err = soul.WriteUint32(gzw, 0)
+	err = internal.WriteUint32(gzw, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(gzw, uint32(len(privateDirectories)))
+	err = internal.WriteUint32(gzw, uint32(len(privateDirectories)))
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,7 @@ func (s SharedFileListResponse) Serialize(directories, privateDirectories []Dire
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 var ErrEmptyFileDirectory = errors.New("directory is empty")
@@ -92,12 +93,12 @@ func (s SharedFileListResponse) walkWrite(directories []Directory, gzw *gzip.Wri
 }
 
 func (s *SharedFileListResponse) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 5
+	code, err := internal.ReadUint32(reader) // code 5
 	if err != nil {
 		return err
 	}
@@ -112,7 +113,7 @@ func (s *SharedFileListResponse) Deserialize(reader io.Reader) error {
 		log.Fatal(err)
 	}
 
-	directories, err := soul.ReadUint32(gzr)
+	directories, err := internal.ReadUint32(gzr)
 	if err != nil {
 		return err
 	}
@@ -124,12 +125,12 @@ func (s *SharedFileListResponse) Deserialize(reader io.Reader) error {
 
 	s.Directories = append(s.Directories, dirs...)
 
-	_, err = soul.ReadUint32(gzr)
+	_, err = internal.ReadUint32(gzr)
 	if err != nil {
 		return err
 	}
 
-	privateDirectories, err := soul.ReadUint32(gzr)
+	privateDirectories, err := internal.ReadUint32(gzr)
 	if err != nil {
 		return err
 	}
@@ -151,12 +152,12 @@ func (s SharedFileListResponse) walkRead(numberOfDirectories uint32, gzr *gzip.R
 		var directory Directory
 		var err error
 
-		directory.Name, err = soul.ReadString(gzr)
+		directory.Name, err = internal.ReadString(gzr)
 		if err != nil {
 			return nil, err
 		}
 
-		files, err := soul.ReadUint32(gzr)
+		files, err := internal.ReadUint32(gzr)
 		if err != nil {
 			return nil, err
 		}
@@ -164,27 +165,27 @@ func (s SharedFileListResponse) walkRead(numberOfDirectories uint32, gzr *gzip.R
 		for j := 0; j < int(files); j++ {
 			var f File
 
-			_, err := soul.ReadUint8(gzr)
+			_, err := internal.ReadUint8(gzr)
 			if err != nil {
 				return nil, err
 			}
 
-			f.Name, err = soul.ReadString(gzr)
+			f.Name, err = internal.ReadString(gzr)
 			if err != nil {
 				return nil, err
 			}
 
-			f.Size, err = soul.ReadUint64(gzr)
+			f.Size, err = internal.ReadUint64(gzr)
 			if err != nil {
 				return nil, err
 			}
 
-			f.Extension, err = soul.ReadString(gzr)
+			f.Extension, err = internal.ReadString(gzr)
 			if err != nil {
 				return nil, err
 			}
 
-			attributes, err := soul.ReadUint32(gzr)
+			attributes, err := internal.ReadUint32(gzr)
 			if err != nil {
 				return nil, err
 			}
@@ -192,14 +193,14 @@ func (s SharedFileListResponse) walkRead(numberOfDirectories uint32, gzr *gzip.R
 			for k := 0; k < int(attributes); k++ {
 				var a Attribute
 
-				code, err := soul.ReadUint32(gzr)
+				code, err := internal.ReadUint32(gzr)
 				if err != nil {
 					return nil, err
 				}
 
 				a.Code = FileAttributeType(code)
 
-				a.Value, err = soul.ReadUint32ToInt(gzr)
+				a.Value, err = internal.ReadUint32ToInt(gzr)
 				if err != nil {
 					return nil, err
 				}

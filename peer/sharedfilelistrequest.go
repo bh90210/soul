@@ -4,31 +4,33 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
-const SharedFileListRequestCode Code = 4
+const SharedFileListRequestCode soul.PeerCode = 4
 
 type SharedFileListRequest struct{}
 
 func (g SharedFileListRequest) Serialize() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(SharedFileListRequestCode))
+	err := internal.WriteUint32(buf, uint32(SharedFileListRequestCode))
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
-func (g *SharedFileListRequest) Deserialize(reader *bytes.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+func (g *SharedFileListRequest) Deserialize(reader io.Reader) error {
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 4
+	code, err := internal.ReadUint32(reader) // code 4
 	if err != nil {
 		return err
 	}
