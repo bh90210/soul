@@ -22,6 +22,20 @@ const (
 	Online
 )
 
+func (u UserStatus) String() string {
+	switch u {
+	case Offline:
+		return "offline"
+	case Away:
+		return "away"
+	case Online:
+		return "online"
+
+	default:
+		return "unknown"
+	}
+}
+
 func MessageRead(connection net.Conn) (io.Reader, int, soul.ServerCode, error) {
 	return internal.MessageRead(soul.ServerCode(0), connection)
 }

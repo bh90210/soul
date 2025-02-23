@@ -9,43 +9,53 @@ import (
 )
 
 func main() {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	log.Level(zerolog.DebugLevel) // TODO: change to info.
+	// Init a server instance.
+	client := new(flow.Client)
 
-	s := flow.Server{
-		Config: &flow.Config{
-			Username:        "kokomploko123",
-			Password:        "sizbty$%YDHFGfg",
-			SoulseekAddress: "server.slsknet.org",
-			// SoulseekAddress: "localhost", // Local dev.
-			SoulseekPort: 2242,
-		},
+	// Setup the server configuration.
+	client.Config = &flow.Config{
+		Username: "kokomploko123",
+		Password: "sizbty$%YDHFGfg",
+		// SoulseekAddress: "server.slsknet.org",
+		SoulseekAddress: "localhost", // Local dev.
+		SoulseekPort:    2242,
+		SharedFolders:   1,
+		SharedFiles:     1,
+		LogLevel:        zerolog.DebugLevel,
 	}
 
-	err := s.Dial()
+	// Setup logger.
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Level(client.Config.LogLevel)
+
+	// Connect to the server.
+	err := client.Dial()
 	if err != nil {
 		log.Fatal().Err(err).Msg("dial")
 	}
 
-	defer s.Close()
+	defer client.Close()
 
+	// Start listening for messages.
 	go func() {
 		for {
-			_, err := s.NextMessage()
+			_, err := client.NextMessage()
 			if err != nil {
 				log.Fatal().Err(err).Msg("nextmessage")
 			}
 		}
 	}()
 
-	loginMessage, err := s.Login()
+	// Login to the server.
+	loginMessage, err := client.Login()
 	if err != nil {
 		log.Fatal().Err(err).Msg("login")
 	}
 
 	log.Debug().Any("login message", loginMessage).Msg("login success")
 
-	go s.Ping()
+	// When connected, start pinging the server.
+	go client.Ping()
 
 	select {}
 }

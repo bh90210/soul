@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Server struct {
+type Client struct {
 	Config *Config
 
 	conn net.Conn
@@ -20,7 +20,7 @@ type Server struct {
 	mu   sync.Mutex
 }
 
-func (s *Server) Dial() (err error) {
+func (s *Client) Dial() (err error) {
 	s.conn, err = net.Dial("tcp", fmt.Sprintf("%s:%v", s.Config.SoulseekAddress, s.Config.SoulseekPort))
 	if err != nil {
 		return
@@ -31,30 +31,30 @@ func (s *Server) Dial() (err error) {
 	return
 }
 
-func (s *Server) Close() {
-	s.conn.Close()
+func (c *Client) Close() {
+	c.conn.Close()
 }
 
-func (s *Server) NextMessage() (soul.ServerCode, error) {
-	r, _, code, err := server.MessageRead(s.conn)
+func (c *Client) NextMessage() (soul.ServerCode, error) {
+	r, _, code, err := server.MessageRead(c.conn)
 	if err != nil {
 		return 0, err
 	}
 
-	s.mu.Lock()
-	s.m[code] = append(s.m[code], r)
-	s.mu.Unlock()
+	c.mu.Lock()
+	c.m[code] = append(c.m[code], r)
+	c.mu.Unlock()
 
 	log.Debug().Int("code", int(code)).Msg("nextmessage")
 
 	return code, nil
 }
 
-func (s *Server) Write(message []byte) (int, error) {
-	return server.MessageWrite(s.conn, message)
+func (c *Client) Write(message []byte) (int, error) {
+	return server.MessageWrite(c.conn, message)
 }
 
-func (s *Server) Ping() error {
+func (c *Client) Ping() error {
 	ping := new(server.Ping)
 	for {
 		pingMessage, err := ping.Serialize()
@@ -62,7 +62,7 @@ func (s *Server) Ping() error {
 			return err
 		}
 
-		_, err = s.Write(pingMessage)
+		_, err = c.Write(pingMessage)
 		if err != nil {
 			return err
 		}

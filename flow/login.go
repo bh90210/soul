@@ -19,27 +19,28 @@ type LoginMessage struct {
 	PrivilegedUsers       *server.PrivilegedUsers
 	ExcludedSearchPhrases *server.ExcludedSearchPhrases
 	CheckPrivileges       *server.CheckPrivileges
+	WatchUser             *server.WatchUser
 }
 
-func (s *Server) Login() (*LoginMessage, error) {
-	err := s.sendUsernamePassword()
+func (c *Client) Login() (*LoginMessage, error) {
+	err := c.sendUsernamePassword()
 	if err != nil {
 		return nil, err
 	}
 
 	l := new(LoginMessage)
 
-	err = s.checkUsernamePassword(l)
+	err = c.checkUsernamePassword(l)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 
-	err = s.sendRestOfLoginMessages()
+	err = c.sendRestOfLoginMessages()
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.checkRestOfLoginMessages(l)
+	err = c.checkRestOfLoginMessages(l)
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
@@ -47,14 +48,14 @@ func (s *Server) Login() (*LoginMessage, error) {
 	return l, nil
 }
 
-func (s *Server) sendUsernamePassword() error {
+func (c *Client) sendUsernamePassword() error {
 	login := new(server.Login)
-	loginMessage, err := login.Serialize(s.Config.Username, s.Config.Password)
+	loginMessage, err := login.Serialize(c.Config.Username, c.Config.Password)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.Write(loginMessage)
+	_, err = c.Write(loginMessage)
 	if err != nil {
 		return err
 	}
@@ -62,53 +63,57 @@ func (s *Server) sendUsernamePassword() error {
 	return nil
 }
 
-func (s *Server) checkUsernamePassword(l *LoginMessage) (err error) {
+func (c *Client) checkUsernamePassword(l *LoginMessage) (err error) {
 	for {
-		s.mu.Lock()
-		if r, ok := s.m[server.LoginCode]; ok {
+		c.mu.Lock()
+		if r, ok := c.m[server.LoginCode]; ok {
 			if len(r) > 0 {
 				l.Login = new(server.Login)
 				err = l.Login.Deserialize(r[0])
 				if err != nil && !errors.Is(err, io.EOF) {
-					s.mu.Unlock()
+					c.mu.Unlock()
 					return
 				}
 
-				log.Debug().Any("code", server.LoginCode).Str("greet", l.Login.Greet).IPAddr("ip", l.Login.IP).Str("sum", l.Login.Sum).Msg("login")
+				log.Debug().Any("code", server.LoginCode).Str("greet", l.Login.Greet).IPAddr("ip", l.Login.IP).Str("sum", l.Login.Sum).Msg(server.LoginCode.String())
 
-				s.m[server.LoginCode] = s.m[server.LoginCode][1:]
-				s.mu.Unlock()
+				c.m[server.LoginCode] = c.m[server.LoginCode][1:]
+				c.mu.Unlock()
 				return
 			}
 		}
-		s.mu.Unlock()
+		c.mu.Unlock()
 
 		time.Sleep(50 * time.Millisecond)
 	}
 }
 
-func (s *Server) sendRestOfLoginMessages() error {
+func (c *Client) sendRestOfLoginMessages() error {
 	privileges := new(server.CheckPrivileges)
 	privilegesMessage, err := privileges.Serialize()
 	if err != nil {
 		return err
 	}
 
-	_, err = s.Write(privilegesMessage)
+	_, err = c.Write(privilegesMessage)
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(50 * time.Millisecond)
 
 	port := new(server.SetListenPort)
-	portMessage, err := port.Serialize(uint32(s.Config.SoulseekPort))
+	portMessage, err := port.Serialize(uint32(c.Config.SoulseekPort))
 	if err != nil {
 		return err
 	}
 
-	_, err = s.Write(portMessage)
+	_, err = c.Write(portMessage)
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(50 * time.Millisecond)
 
 	status := new(server.SetStatus)
 	statusMessage, err := status.Serialize(server.Online)
@@ -116,32 +121,38 @@ func (s *Server) sendRestOfLoginMessages() error {
 		return err
 	}
 
-	_, err = s.Write(statusMessage)
+	_, err = c.Write(statusMessage)
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(50 * time.Millisecond)
 
 	shared := new(server.SharedFoldersFiles)
-	sharedMessage, err := shared.Serialize(s.Config.SharedFolders, s.Config.SharedFiles)
+	sharedMessage, err := shared.Serialize(c.Config.SharedFolders, c.Config.SharedFiles)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.Write(sharedMessage)
+	_, err = c.Write(sharedMessage)
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(50 * time.Millisecond)
 
 	watch := new(server.WatchUser)
-	watchMessage, err := watch.Serialize(s.Config.Username)
+	watchMessage, err := watch.Serialize(c.Config.Username)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.Write(watchMessage)
+	_, err = c.Write(watchMessage)
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(50 * time.Millisecond)
 
 	noParent := new(server.HaveNoParent)
 	parentSearchMessage, err := noParent.Serialize(true)
@@ -149,21 +160,25 @@ func (s *Server) sendRestOfLoginMessages() error {
 		return err
 	}
 
-	_, err = s.Write(parentSearchMessage)
+	_, err = c.Write(parentSearchMessage)
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(50 * time.Millisecond)
 
 	root := new(server.BranchRoot)
-	rootMessage, err := root.Serialize(s.Config.Username)
+	rootMessage, err := root.Serialize(c.Config.Username)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.Write(rootMessage)
+	_, err = c.Write(rootMessage)
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(50 * time.Millisecond)
 
 	level := new(server.BranchLevel)
 	levelMessage, err := level.Serialize(0)
@@ -171,10 +186,12 @@ func (s *Server) sendRestOfLoginMessages() error {
 		return err
 	}
 
-	_, err = s.Write(levelMessage)
+	_, err = c.Write(levelMessage)
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(50 * time.Millisecond)
 
 	accept := new(server.AcceptChildren)
 	acceptMessage, err := accept.Serialize(true)
@@ -182,7 +199,7 @@ func (s *Server) sendRestOfLoginMessages() error {
 		return err
 	}
 
-	_, err = s.Write(acceptMessage)
+	_, err = c.Write(acceptMessage)
 	if err != nil {
 		return err
 	}
@@ -190,7 +207,7 @@ func (s *Server) sendRestOfLoginMessages() error {
 	return nil
 }
 
-func (s *Server) checkRestOfLoginMessages(l *LoginMessage) (err error) {
+func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 	necessaryCodes := map[soul.ServerCode]bool{
 		server.RoomListCode:              false,
 		server.ParentMinSpeedCode:        false,
@@ -199,6 +216,7 @@ func (s *Server) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 		server.PrivilegedUsersCode:       false,
 		server.ExcludedSearchPhrasesCode: false,
 		server.CheckPrivilegesCode:       false,
+		server.WatchUserCode:             false,
 	}
 
 	t := time.Now()
@@ -233,91 +251,106 @@ func (s *Server) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 					necessaryCodes[server.CheckPrivilegesCode] = true
 					continue
 				}
+
+				if !necessaryCodes[server.WatchUserCode] {
+					necessaryCodes[server.WatchUserCode] = true
+					continue
+				}
 			}
 		}
 
 		for code := range necessaryCodes {
 			go func(code soul.ServerCode) {
-				s.mu.Lock()
-				if r, ok := s.m[code]; ok {
+				c.mu.Lock()
+				if r, ok := c.m[code]; ok {
 					if len(r) > 0 {
 						switch code {
 						case server.RoomListCode:
 							l.RoomList = new(server.RoomList)
 							err = l.RoomList.Deserialize(r[0])
 							if err != nil && !errors.Is(err, io.EOF) {
-								s.mu.Unlock()
+								c.mu.Unlock()
 								return
 							}
 
-							log.Debug().Any("code", code).Int("rooms", len(l.RoomList.Rooms)).Msg("roomlist")
+							log.Debug().Any("code", code).Int("rooms", len(l.RoomList.Rooms)).Msg(code.String())
 
 						case server.ParentMinSpeedCode:
 							l.ParentMinSpeed = new(server.ParentMinSpeed)
 							err = l.ParentMinSpeed.Deserialize(r[0])
 							if err != nil && !errors.Is(err, io.EOF) {
-								s.mu.Unlock()
+								c.mu.Unlock()
 								return
 							}
 
-							log.Debug().Any("code", code).Int("speed", l.ParentMinSpeed.MinSpeed).Msg("parentminspeed")
+							log.Debug().Any("code", code).Int("speed", l.ParentMinSpeed.MinSpeed).Msg(code.String())
 
 						case server.ParentSpeedRatioCode:
 							l.ParentSpeedRatio = new(server.ParentSpeedRatio)
 							err = l.ParentSpeedRatio.Deserialize(r[0])
 							if err != nil && !errors.Is(err, io.EOF) {
-								s.mu.Unlock()
+								c.mu.Unlock()
 								return
 							}
 
-							log.Debug().Any("code", code).Int("ratio", l.ParentSpeedRatio.SpeedRatio).Msg("parentspeedratio")
+							log.Debug().Any("code", code).Int("ratio", l.ParentSpeedRatio.SpeedRatio).Msg(code.String())
 
 						case server.WishlistIntervalCode:
 							l.WishlistInterval = new(server.WishlistInterval)
 							err = l.WishlistInterval.Deserialize(r[0])
 							if err != nil && !errors.Is(err, io.EOF) {
-								s.mu.Unlock()
+								c.mu.Unlock()
 								return
 							}
 
-							log.Debug().Any("code", code).Int("interval", l.WishlistInterval.Interval).Msg("wishlistinterval")
+							log.Debug().Any("code", code).Int("interval", l.WishlistInterval.Interval).Msg(code.String())
 
 						case server.PrivilegedUsersCode:
 							l.PrivilegedUsers = new(server.PrivilegedUsers)
 							err = l.PrivilegedUsers.Deserialize(r[0])
 							if err != nil && !errors.Is(err, io.EOF) {
-								s.mu.Unlock()
+								c.mu.Unlock()
 								return
 							}
 
-							log.Debug().Any("code", code).Int("users", len(l.PrivilegedUsers.Users)).Msg("privilegedusers")
+							log.Debug().Any("code", code).Int("users", len(l.PrivilegedUsers.Users)).Msg(code.String())
 
 						case server.ExcludedSearchPhrasesCode:
 							l.ExcludedSearchPhrases = new(server.ExcludedSearchPhrases)
 							err = l.ExcludedSearchPhrases.Deserialize(r[0])
 							if err != nil && !errors.Is(err, io.EOF) {
-								s.mu.Unlock()
+								c.mu.Unlock()
 								return
 							}
 
-							log.Debug().Any("code", code).Int("phrases", len(l.ExcludedSearchPhrases.Phrases)).Msg("excludedsearchphrases")
+							log.Debug().Any("code", code).Int("phrases", len(l.ExcludedSearchPhrases.Phrases)).Msg(code.String())
 
 						case server.CheckPrivilegesCode:
 							l.CheckPrivileges = new(server.CheckPrivileges)
 							err = l.CheckPrivileges.Deserialize(r[0])
 							if err != nil && !errors.Is(err, io.EOF) {
-								s.mu.Unlock()
+								c.mu.Unlock()
 								return
 							}
 
-							log.Debug().Any("code", code).Int("timeleft", l.CheckPrivileges.TimeLeft).Msg("checkprivileges")
+							log.Debug().Any("code", code).Int("timeleft", l.CheckPrivileges.TimeLeft).Msg(code.String())
+
+						case server.WatchUserCode:
+							l.WatchUser = new(server.WatchUser)
+							err = l.WatchUser.Deserialize(r[0])
+							if err != nil && !errors.Is(err, io.EOF) {
+								c.mu.Unlock()
+								return
+							}
+
+							log.Debug().Any("code", code).Str("user", l.WatchUser.Username).Str("status", l.WatchUser.Status.String()).Msg(code.String())
 						}
 
-						s.m[code] = s.m[code][1:]
+						c.m[code] = c.m[code][1:]
 						necessaryCodes[code] = true
 					}
 				}
-				s.mu.Unlock()
+				c.mu.Unlock()
 			}(code)
 		}
 

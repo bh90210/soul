@@ -16,12 +16,12 @@ type PrivateRoomOperatorRemoved struct {
 }
 
 func (p *PrivateRoomOperatorRemoved) Deserialize(reader io.Reader) error {
-	_, err := internal.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // Size.
 	if err != nil {
 		return err
 	}
 
-	code, err := internal.ReadUint32(reader) // code 146
+	code, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
