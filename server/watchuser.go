@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const WatchUserCode soul.ServerCode = 5
@@ -25,23 +26,23 @@ type WatchUser struct {
 // Serialize serializes the WatchUser struct into a byte slice
 func (w WatchUser) Serialize(username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	soul.WriteUint32(buf, uint32(WatchUserCode))
+	internal.WriteUint32(buf, uint32(WatchUserCode))
 
-	err := soul.WriteString(buf, username)
+	err := internal.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 func (w *WatchUser) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 5
+	code, err := internal.ReadUint32(reader) // code 5
 	if err != nil {
 		return err
 	}
@@ -51,47 +52,47 @@ func (w *WatchUser) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", WatchUserCode, code))
 	}
 
-	w.Username, err = soul.ReadString(reader)
+	w.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	w.Exists, err = soul.ReadBool(reader)
+	w.Exists, err = internal.ReadBool(reader)
 	if err != nil {
 		return err
 	}
 
 	if w.Exists {
-		status, err := soul.ReadUint32(reader)
+		status, err := internal.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
 
 		w.Status = UserStatus(status)
 
-		w.AverageSpeed, err = soul.ReadUint32ToInt(reader)
+		w.AverageSpeed, err = internal.ReadUint32ToInt(reader)
 		if err != nil {
 			return err
 		}
 
-		w.UploadNumber, err = soul.ReadUint32ToInt(reader)
+		w.UploadNumber, err = internal.ReadUint32ToInt(reader)
 		if err != nil {
 			return err
 		}
 
-		w.Files, err = soul.ReadUint32ToInt(reader)
+		w.Files, err = internal.ReadUint32ToInt(reader)
 		if err != nil {
 			return err
 		}
 
-		w.Directories, err = soul.ReadUint32ToInt(reader)
+		w.Directories, err = internal.ReadUint32ToInt(reader)
 		if err != nil {
 			return err
 		}
 	}
 
 	if w.Status == Online || w.Status == Away {
-		w.CountryCode, err = soul.ReadString(reader)
+		w.CountryCode, err = internal.ReadString(reader)
 		if err != nil {
 			return err
 		}

@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 // UserStatus represents the status of a user.
@@ -22,9 +23,9 @@ const (
 )
 
 func MessageRead(connection net.Conn) (io.Reader, int, soul.ServerCode, error) {
-	return soul.MessageRead(soul.ServerCode(0), connection)
+	return internal.MessageRead(soul.ServerCode(0), connection)
 }
 
 func MessageWrite(connection net.Conn, message []byte) (int, error) {
-	return soul.MessageWrite(connection, message)
+	return internal.MessageWrite(connection, message)
 }

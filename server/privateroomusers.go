@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const PrivateRoomUsersCode soul.ServerCode = 133
@@ -16,12 +17,12 @@ type PrivateRoomUsers struct {
 }
 
 func (p *PrivateRoomUsers) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 133
+	code, err := internal.ReadUint32(reader) // code 133
 	if err != nil {
 		return err
 	}
@@ -31,18 +32,18 @@ func (p *PrivateRoomUsers) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", PrivateRoomUsersCode, code))
 	}
 
-	p.Room, err = soul.ReadString(reader)
+	p.Room, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	users, err := soul.ReadUint32(reader)
+	users, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < int(users); i++ {
-		user, err := soul.ReadString(reader)
+		user, err := internal.ReadString(reader)
 		if err != nil {
 			return err
 		}

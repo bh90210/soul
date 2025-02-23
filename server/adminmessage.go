@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const AdminMessageCode soul.ServerCode = 66
@@ -15,12 +16,12 @@ type AdminMessage struct {
 }
 
 func (a *AdminMessage) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 66
+	code, err := internal.ReadUint32(reader) // code 66
 	if err != nil {
 		return err
 	}
@@ -30,7 +31,7 @@ func (a *AdminMessage) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", AdminMessageCode, code))
 	}
 
-	a.Message, err = soul.ReadString(reader)
+	a.Message, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

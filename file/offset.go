@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 type Offset struct {
@@ -13,7 +13,7 @@ type Offset struct {
 
 func (o Offset) Serialize(offset uint64) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint64(buf, offset)
+	err := internal.WriteUint64(buf, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (o Offset) Serialize(offset uint64) ([]byte, error) {
 }
 
 func (o *Offset) Deserialize(reader io.Reader) (err error) {
-	o.Offset, err = soul.ReadUint64(reader)
+	o.Offset, err = internal.ReadUint64(reader)
 	if err != nil {
 		return err
 	}

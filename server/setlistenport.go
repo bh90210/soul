@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 // SetListenPortCode SetWaitPort.
@@ -13,17 +14,17 @@ const SetListenPortCode soul.ServerCode = 2
 type SetListenPort struct{}
 
 // Serialize accepts a port number and returns a serialized byte array.
-func (s SetListenPort) Serialize(port int) ([]byte, error) {
+func (s SetListenPort) Serialize(port uint32) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(SetListenPortCode))
+	err := internal.WriteUint32(buf, uint32(SetListenPortCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(buf, uint32(port))
+	err = internal.WriteUint32(buf, port)
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }

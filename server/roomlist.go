@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 // RoomListCode RoomList.
@@ -24,12 +25,12 @@ type Room struct {
 }
 
 func (r *RoomList) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 64
+	code, err := internal.ReadUint32(reader) // code 64
 	if err != nil {
 		return err
 	}
@@ -40,14 +41,14 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	// Public room.
-	numberOfRooms, err := soul.ReadUint32(reader)
+	numberOfRooms, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
 	// Iterate over the number of rooms and read the room names.
 	for i := 0; i < int(numberOfRooms); i++ {
-		name, err := soul.ReadString(reader)
+		name, err := internal.ReadString(reader)
 		if err != nil {
 			return err
 		}
@@ -58,7 +59,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	for i := range r.Rooms {
-		users, err := soul.ReadUint32(reader)
+		users, err := internal.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
@@ -67,14 +68,14 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	// Owned private rooms.
-	numberOfPrivateRooms, err := soul.ReadUint32(reader)
+	numberOfPrivateRooms, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
 	var ownedPrivateRooms []Room
 	for i := 0; i < int(numberOfPrivateRooms); i++ {
-		name, err := soul.ReadString(reader)
+		name, err := internal.ReadString(reader)
 		if err != nil {
 			return err
 		}
@@ -87,7 +88,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	for i := range ownedPrivateRooms {
-		no, err := soul.ReadUint32(reader)
+		no, err := internal.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
@@ -98,7 +99,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	r.Rooms = append(r.Rooms, ownedPrivateRooms...)
 
 	// Not owned private rooms.
-	no, err := soul.ReadUint32(reader)
+	no, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -107,7 +108,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 
 	var notOwnedPrivateRooms []Room
 	for i := 0; i < int(numberOFNotOwnedPrivateRooms); i++ {
-		name, err := soul.ReadString(reader)
+		name, err := internal.ReadString(reader)
 		if err != nil {
 			return err
 		}
@@ -119,7 +120,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	for i := range notOwnedPrivateRooms {
-		no, err := soul.ReadUint32(reader)
+		no, err := internal.ReadUint32(reader)
 		if err != nil {
 			return err
 		}
@@ -130,7 +131,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	r.Rooms = append(r.Rooms, ownedPrivateRooms...)
 
 	// Operated private rooms.
-	no, err = soul.ReadUint32(reader)
+	no, err = internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
@@ -139,7 +140,7 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 
 	var operatedPrivateRooms []Room
 	for i := 0; i < int(numberOfOperatedPrivateRooms); i++ {
-		name, err := soul.ReadString(reader)
+		name, err := internal.ReadString(reader)
 		if err != nil {
 			return err
 		}
@@ -152,8 +153,8 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 	}
 
 	for i := range operatedPrivateRooms {
-		no, err := soul.ReadUint32(reader)
-		if err != nil {
+		no, err := internal.ReadUint32(reader)
+		if err != nil && !errors.Is(err, io.EOF) {
 			return err
 		}
 
@@ -162,5 +163,5 @@ func (r *RoomList) Deserialize(reader io.Reader) error {
 
 	r.Rooms = append(r.Rooms, ownedPrivateRooms...)
 
-	return nil
+	return io.EOF
 }

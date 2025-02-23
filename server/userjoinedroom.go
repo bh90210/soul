@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const UserJoinedRoomCode soul.ServerCode = 16
@@ -23,12 +24,12 @@ type UserJoinedRoom struct {
 }
 
 func (u *UserJoinedRoom) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 16
+	code, err := internal.ReadUint32(reader) // code 16
 	if err != nil {
 		return err
 	}
@@ -38,49 +39,49 @@ func (u *UserJoinedRoom) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", UserJoinedRoomCode, code))
 	}
 
-	u.Room, err = soul.ReadString(reader)
+	u.Room, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	u.Username, err = soul.ReadString(reader)
+	u.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	status, err := soul.ReadUint32(reader)
+	status, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
 	u.Status = UserStatus(status)
 
-	u.Speed, err = soul.ReadUint32ToInt(reader)
+	u.Speed, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	u.Uploads, err = soul.ReadUint32ToInt(reader)
+	u.Uploads, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	u.Files, err = soul.ReadUint32ToInt(reader)
+	u.Files, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	u.Directories, err = soul.ReadUint32ToInt(reader)
+	u.Directories, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	u.Slots, err = soul.ReadUint32ToInt(reader)
+	u.Slots, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	u.CountryCode, err = soul.ReadString(reader)
+	u.CountryCode, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

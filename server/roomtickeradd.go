@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const RoomTickerAddCode soul.ServerCode = 114
@@ -17,12 +18,12 @@ type RoomTickerAdd struct {
 }
 
 func (r *RoomTickerAdd) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 114
+	code, err := internal.ReadUint32(reader) // code 114
 	if err != nil {
 		return err
 	}
@@ -32,17 +33,17 @@ func (r *RoomTickerAdd) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", RoomTickerAddCode, code))
 	}
 
-	r.Room, err = soul.ReadString(reader)
+	r.Room, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	r.Username, err = soul.ReadString(reader)
+	r.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	r.Ticker, err = soul.ReadString(reader)
+	r.Ticker, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

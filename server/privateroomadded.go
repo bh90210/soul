@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const PrivateRoomAddedCode soul.ServerCode = 139
@@ -15,12 +16,12 @@ type PrivateRoomAdded struct {
 }
 
 func (p *PrivateRoomAdded) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 139
+	code, err := internal.ReadUint32(reader) // code 139
 	if err != nil {
 		return err
 	}
@@ -30,7 +31,7 @@ func (p *PrivateRoomAdded) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", PrivateRoomAddedCode, code))
 	}
 
-	p.Room, err = soul.ReadString(reader)
+	p.Room, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

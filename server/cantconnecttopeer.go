@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const CantConnectToPeerCode soul.ServerCode = 1001
@@ -18,31 +19,31 @@ type CantConnectToPeer struct {
 
 func (c CantConnectToPeer) Serialize(token uint32, username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(CantConnectToPeerCode))
+	err := internal.WriteUint32(buf, uint32(CantConnectToPeerCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(buf, token)
+	err = internal.WriteUint32(buf, token)
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, username)
+	err = internal.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 func (c *CantConnectToPeer) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 1001
+	code, err := internal.ReadUint32(reader) // code 1001
 	if err != nil {
 		return err
 	}
@@ -52,12 +53,12 @@ func (c *CantConnectToPeer) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", CantConnectToPeerCode, code))
 	}
 
-	c.Token, err = soul.ReadUint32(reader)
+	c.Token, err = internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
-	c.Username, err = soul.ReadString(reader)
+	c.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

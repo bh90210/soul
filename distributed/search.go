@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const SearchCode soul.DistributedCode = 3
@@ -19,41 +20,41 @@ type Search struct {
 
 func (d Search) Serialize(token uint32, username, query string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint8(buf, uint8(SearchCode))
+	err := internal.WriteUint8(buf, uint8(SearchCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(buf, uint32(0))
+	err = internal.WriteUint32(buf, uint32(0))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, username)
+	err = internal.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(buf, token)
+	err = internal.WriteUint32(buf, token)
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, query)
+	err = internal.WriteString(buf, query)
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 func (d *Search) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint8(reader) // code 3
+	code, err := internal.ReadUint8(reader) // code 3
 	if err != nil {
 		return err
 	}
@@ -63,22 +64,22 @@ func (d *Search) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", SearchCode, code))
 	}
 
-	_, err = soul.ReadUint32(reader)
+	_, err = internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
-	d.Username, err = soul.ReadString(reader)
+	d.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	d.Token, err = soul.ReadUint32(reader)
+	d.Token, err = internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
-	d.Query, err = soul.ReadString(reader)
+	d.Query, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

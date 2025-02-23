@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const GetUserStatsCode soul.ServerCode = 36
@@ -21,26 +22,26 @@ type GetUserStats struct {
 
 func (g GetUserStats) Serialize(username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(GetUserStatsCode))
+	err := internal.WriteUint32(buf, uint32(GetUserStatsCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, username)
+	err = internal.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 func (g *GetUserStats) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 36
+	code, err := internal.ReadUint32(reader) // code 36
 	if err != nil {
 		return err
 	}
@@ -50,27 +51,27 @@ func (g *GetUserStats) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", GetUserStatsCode, code))
 	}
 
-	g.Username, err = soul.ReadString(reader)
+	g.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	g.Speed, err = soul.ReadUint32ToInt(reader)
+	g.Speed, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	g.Uploads, err = soul.ReadUint32ToInt(reader)
+	g.Uploads, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	g.Files, err = soul.ReadUint32ToInt(reader)
+	g.Files, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	g.Directories, err = soul.ReadUint32ToInt(reader)
+	g.Directories, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

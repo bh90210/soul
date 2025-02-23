@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const PrivateRoomAddUserCode soul.ServerCode = 134
@@ -18,31 +19,31 @@ type PrivateRoomAddUser struct {
 
 func (p PrivateRoomAddUser) Serialize(room, username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(PrivateRoomAddUserCode))
+	err := internal.WriteUint32(buf, uint32(PrivateRoomAddUserCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, room)
+	err = internal.WriteString(buf, room)
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, username)
+	err = internal.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 func (p *PrivateRoomAddUser) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 134
+	code, err := internal.ReadUint32(reader) // code 134
 	if err != nil {
 		return err
 	}
@@ -52,12 +53,12 @@ func (p *PrivateRoomAddUser) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", PrivateRoomAddUserCode, code))
 	}
 
-	p.Room, err = soul.ReadString(reader)
+	p.Room, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	p.Username, err = soul.ReadString(reader)
+	p.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const CheckPrivilegesCode soul.ServerCode = 92
@@ -17,21 +18,21 @@ type CheckPrivileges struct {
 
 func (c CheckPrivileges) Serialize() ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(CheckPrivilegesCode))
+	err := internal.WriteUint32(buf, uint32(CheckPrivilegesCode))
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 func (c *CheckPrivileges) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 92
+	code, err := internal.ReadUint32(reader) // code 92
 	if err != nil {
 		return err
 	}
@@ -41,10 +42,6 @@ func (c *CheckPrivileges) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", CheckPrivilegesCode, code))
 	}
 
-	c.TimeLeft, err = soul.ReadUint32ToInt(reader)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	c.TimeLeft, err = internal.ReadUint32ToInt(reader)
+	return err
 }

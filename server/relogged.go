@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const ReloggedCode soul.ServerCode = 41
@@ -13,12 +14,12 @@ const ReloggedCode soul.ServerCode = 41
 type Relogged struct{}
 
 func (r *Relogged) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 41
+	code, err := internal.ReadUint32(reader) // code 41
 	if err != nil {
 		return err
 	}

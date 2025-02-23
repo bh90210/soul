@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const EmbeddedMessageCode soul.DistributedCode = 93
@@ -18,31 +19,31 @@ type EmbeddedMessage struct {
 
 func (d EmbeddedMessage) Serialize(code soul.DistributedCode, message []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint8(buf, uint8(EmbeddedMessageCode))
+	err := internal.WriteUint8(buf, uint8(EmbeddedMessageCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(buf, uint32(code))
+	err = internal.WriteUint32(buf, uint32(code))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteBytes(buf, message)
+	err = internal.WriteBytes(buf, message)
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 func (d *EmbeddedMessage) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint8(reader) // code 93
+	code, err := internal.ReadUint8(reader) // code 93
 	if err != nil {
 		return err
 	}
@@ -52,14 +53,14 @@ func (d *EmbeddedMessage) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", EmbeddedMessageCode, code))
 	}
 
-	code, err = soul.ReadUint8(reader)
+	code, err = internal.ReadUint8(reader)
 	if err != nil {
 		return err
 	}
 
 	d.Code = soul.DistributedCode(code)
 
-	d.Message, err = soul.ReadBytes(reader)
+	d.Message, err = internal.ReadBytes(reader)
 	if err != nil {
 		return err
 	}

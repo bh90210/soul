@@ -1,4 +1,4 @@
-package soul
+package internal
 
 import (
 	"bytes"
@@ -7,13 +7,14 @@ import (
 	"net"
 	"testing"
 
+	"github.com/bh90210/soul"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSendMessage(t *testing.T) {
 	tests := map[string]struct {
 		message    []byte
-		messageLen int
+		messageLen int64
 		want       string
 		error      bool
 	}{
@@ -50,7 +51,7 @@ func TestSendMessage(t *testing.T) {
 
 				i, err := MessageWrite(client, tc.message)
 				assert.NoError(t, err)
-				assert.Equal(t, tc.messageLen, i)
+				assert.Equal(t, tc.messageLen, int64(i))
 			}
 
 			client.Close()
@@ -63,7 +64,7 @@ func TestReadMessage(t *testing.T) {
 		want struct {
 			reader io.Reader
 			size   int
-			code   ServerCode
+			code   soul.ServerCode
 		}
 		error bool
 	}{}

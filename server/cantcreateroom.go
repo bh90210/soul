@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const CantCreateRoomCode soul.ServerCode = 1003
@@ -15,12 +16,12 @@ type CantCreateRoom struct {
 }
 
 func (c *CantCreateRoom) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 1003
+	code, err := internal.ReadUint32(reader) // code 1003
 	if err != nil {
 		return err
 	}
@@ -30,7 +31,7 @@ func (c *CantCreateRoom) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", CantCreateRoomCode, code))
 	}
 
-	c.Room, err = soul.ReadString(reader)
+	c.Room, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

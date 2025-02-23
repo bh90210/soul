@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 // Code GetPeerAddress.
@@ -24,26 +25,26 @@ type GetPeerAddress struct {
 // Serialize accepts a username and returns a serialized byte array.
 func (g GetPeerAddress) Serialize(username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(GetPeerAddressCode))
+	err := internal.WriteUint32(buf, uint32(GetPeerAddressCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, username)
+	err = internal.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 3
+	code, err := internal.ReadUint32(reader) // code 3
 	if err != nil {
 		return err
 	}
@@ -53,29 +54,29 @@ func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", GetPeerAddressCode, code))
 	}
 
-	g.Username, err = soul.ReadString(reader)
+	g.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	ip, err := soul.ReadUint32(reader)
+	ip, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
-	g.IP = soul.ReadIP(ip)
+	g.IP = internal.ReadIP(ip)
 
-	g.Port, err = soul.ReadUint32ToInt(reader)
+	g.Port, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	_, err = soul.ReadUint32(reader)
+	_, err = internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
-	g.ObfuscatedPort, err = soul.ReadUint32ToInt(reader)
+	g.ObfuscatedPort, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}

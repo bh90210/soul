@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 type TransferInit struct {
@@ -14,7 +14,7 @@ type TransferInit struct {
 func (t TransferInit) Serialize(token uint32) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	err := soul.WriteUint32(buf, token)
+	err := internal.WriteUint32(buf, token)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func (t TransferInit) Serialize(token uint32) ([]byte, error) {
 }
 
 func (t *TransferInit) Deserialize(reader io.Reader) (err error) {
-	t.Token, err = soul.ReadUint32(reader)
+	t.Token, err = internal.ReadUint32(reader)
 	if err != nil {
 		return
 	}

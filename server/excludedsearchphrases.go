@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 // Code ExcludedSearchPhrases.
@@ -16,12 +17,12 @@ type ExcludedSearchPhrases struct {
 }
 
 func (e *ExcludedSearchPhrases) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 160
+	code, err := internal.ReadUint32(reader) // code 160
 	if err != nil {
 		return err
 	}
@@ -31,19 +32,19 @@ func (e *ExcludedSearchPhrases) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", ExcludedSearchPhrasesCode, code))
 	}
 
-	numberOfPhrases, err := soul.ReadUint32(reader)
+	numberOfPhrases, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < int(numberOfPhrases); i++ {
-		phrase, err := soul.ReadString(reader)
-		if err != nil {
+		phrase, err := internal.ReadString(reader)
+		if err != nil && !errors.Is(err, io.EOF) {
 			return err
 		}
 
 		e.Phrases = append(e.Phrases, phrase)
 	}
 
-	return nil
+	return io.EOF
 }

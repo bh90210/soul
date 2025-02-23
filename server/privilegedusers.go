@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const PrivilegedUsersCode soul.ServerCode = 69
@@ -15,12 +16,12 @@ type PrivilegedUsers struct {
 }
 
 func (p *PrivilegedUsers) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 69
+	code, err := internal.ReadUint32(reader) // code 69
 	if err != nil {
 		return err
 	}
@@ -30,19 +31,19 @@ func (p *PrivilegedUsers) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", PrivilegedUsersCode, code))
 	}
 
-	numberOfUsers, err := soul.ReadUint32(reader)
+	numberOfUsers, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
 	for i := 0; i < int(numberOfUsers); i++ {
-		user, err := soul.ReadString(reader)
-		if err != nil {
+		user, err := internal.ReadString(reader)
+		if err != nil && !errors.Is(err, io.EOF) {
 			return err
 		}
 
 		p.Users = append(p.Users, user)
 	}
 
-	return nil
+	return io.EOF
 }

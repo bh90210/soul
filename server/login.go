@@ -11,6 +11,7 @@ import (
 	"net"
 
 	soul "github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 // Code Login.
@@ -31,22 +32,22 @@ type Login struct {
 // buffer as a byte array.
 func (l Login) Serialize(username string, password string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(LoginCode))
+	err := internal.WriteUint32(buf, uint32(LoginCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, username)
+	err = internal.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, password)
+	err = internal.WriteString(buf, password)
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(buf, soul.MajorVersion)
+	err = internal.WriteUint32(buf, soul.MajorVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +62,12 @@ func (l Login) Serialize(username string, password string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(buf, soul.MinorVersion)
+	err = internal.WriteUint32(buf, soul.MinorVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 // Deserialize accepts a reader (from the TCP connection) and reads the response from the server.
@@ -74,12 +75,12 @@ func (l Login) Serialize(username string, password string) ([]byte, error) {
 // Consumers of Deserialize must check if the response is OK before proceeding
 // as contents f Response are pointers and can be nil.
 func (l *Login) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 1
+	code, err := internal.ReadUint32(reader) // code 1
 	if err != nil {
 		return err
 	}
@@ -89,7 +90,7 @@ func (l *Login) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", LoginCode, code))
 	}
 
-	success, err := soul.ReadBool(reader)
+	success, err := internal.ReadBool(reader)
 	if err != nil {
 		return err
 	}
@@ -103,24 +104,20 @@ func (l *Login) Deserialize(reader io.Reader) error {
 
 func (l *Login) readSuccess(reader io.Reader) error {
 	var err error
-	l.Greet, err = soul.ReadString(reader)
+	l.Greet, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	ip, err := soul.ReadUint32(reader)
+	ip, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
-	l.IP = soul.ReadIP(ip)
+	l.IP = internal.ReadIP(ip)
 
-	l.Sum, err = soul.ReadString(reader)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	l.Sum, err = internal.ReadString(reader)
+	return err
 }
 
 // ErrInvalidUsername username is longer than 30 characters or contains invalid characters (non-ASCII)
@@ -133,20 +130,20 @@ var ErrInvalidPass = errors.New("INVALIDPASS")
 var ErrInvalidVersion = errors.New("INVALIDVERSION")
 
 func readFailure(reader io.Reader) error {
-	errMessage, err := soul.ReadString(reader)
-	if err != nil {
+	errMessage, err := internal.ReadString(reader)
+	if err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
 
 	switch errMessage {
 	case "INVALIDUSERNAME":
-		return ErrInvalidUsername
+		return errors.Join(err, ErrInvalidUsername)
 
 	case "INVALIDPASS":
-		return ErrInvalidPass
+		return errors.Join(err, ErrInvalidPass)
 
 	case "INVALIDVERSION":
-		return ErrInvalidVersion
+		return errors.Join(err, ErrInvalidVersion)
 	}
 
 	// This is not suppose to happen thus we are not
@@ -156,5 +153,5 @@ func readFailure(reader io.Reader) error {
 
 func sum(username string, password string) ([]byte, error) {
 	sum := md5.Sum([]byte(username + password))
-	return soul.NewString(hex.EncodeToString(sum[:]))
+	return internal.NewString(hex.EncodeToString(sum[:]))
 }

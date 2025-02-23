@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const SetStatusCode soul.ServerCode = 28
@@ -12,15 +13,15 @@ type SetStatus struct{}
 
 func (s SetStatus) Serialize(status UserStatus) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(SetStatusCode))
+	err := internal.WriteUint32(buf, uint32(SetStatusCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(buf, uint32(status))
+	err = internal.WriteUint32(buf, uint32(status))
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }

@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 const ConnectToPeerCode soul.ServerCode = 18
@@ -24,36 +25,36 @@ type ConnectToPeer struct {
 
 func (c ConnectToPeer) Serialize(token uint32, username string, connType soul.ConnectionType) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := soul.WriteUint32(buf, uint32(ConnectToPeerCode))
+	err := internal.WriteUint32(buf, uint32(ConnectToPeerCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteUint32(buf, token)
+	err = internal.WriteUint32(buf, token)
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, username)
+	err = internal.WriteString(buf, username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = soul.WriteString(buf, string(connType))
+	err = internal.WriteString(buf, string(connType))
 	if err != nil {
 		return nil, err
 	}
 
-	return soul.Pack(buf.Bytes())
+	return internal.Pack(buf.Bytes())
 }
 
 func (c *ConnectToPeer) Deserialize(reader io.Reader) error {
-	_, err := soul.ReadUint32(reader) // size
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
 
-	code, err := soul.ReadUint32(reader) // code 18
+	code, err := internal.ReadUint32(reader) // code 18
 	if err != nil {
 		return err
 	}
@@ -63,48 +64,48 @@ func (c *ConnectToPeer) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", ConnectToPeerCode, code))
 	}
 
-	username, err := soul.ReadString(reader)
+	username, err := internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
 	c.Username = username
 
-	connType, err := soul.ReadString(reader)
+	connType, err := internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
 	c.Type = soul.ConnectionType(connType)
 
-	ip, err := soul.ReadUint32(reader)
+	ip, err := internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
-	c.IP = soul.ReadIP(ip)
+	c.IP = internal.ReadIP(ip)
 
-	c.Port, err = soul.ReadUint32ToInt(reader)
+	c.Port, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
 
-	c.Token, err = soul.ReadUint32(reader)
+	c.Token, err = internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
-	c.Privileged, err = soul.ReadBool(reader)
+	c.Privileged, err = internal.ReadBool(reader)
 	if err != nil {
 		return err
 	}
 
-	_, err = soul.ReadUint32(reader)
+	_, err = internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}
 
-	c.ObfuscatedPort, err = soul.ReadUint32ToInt(reader)
+	c.ObfuscatedPort, err = internal.ReadUint32ToInt(reader)
 	if err != nil {
 		return err
 	}
