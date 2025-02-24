@@ -11,8 +11,7 @@ import (
 func TestSearch(t *testing.T) {
 	t.Parallel()
 
-	var token soul.Token
-	token.Gen()
+	token := soul.NewToken()
 
 	search := new(Search)
 	message, err := search.Serialize(token, "test", "query")

@@ -6,6 +6,7 @@ import (
 
 	"github.com/bh90210/soul"
 	"github.com/bh90210/soul/flow"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -15,9 +16,12 @@ func main() {
 	client := new(flow.Client)
 
 	// Setup the server configuration.
+	username, _ := gonanoid.Generate("abcdefghijklmnopqrstuvwxyz", 12)
+	password, _ := gonanoid.Generate("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 12)
+
 	client.Config = &flow.Config{
-		Username:        "kokomploko123",
-		Password:        "sizbty$%YDHFGfg",
+		Username:        username,
+		Password:        password,
 		SoulseekAddress: "server.slsknet.org",
 		// SoulseekAddress: "localhost", // Local dev.
 		SoulseekPort:  2242,
@@ -61,8 +65,7 @@ func main() {
 
 	time.Sleep(2 * time.Second)
 
-	var token soul.Token
-	token.Gen()
+	token := soul.NewToken()
 
 	err = client.GlobalSearch(token, "bob marley kaya")
 	if err != nil {

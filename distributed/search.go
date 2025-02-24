@@ -39,7 +39,7 @@ func (d Search) Serialize(token soul.Token, username, query string) ([]byte, err
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, token.Uint32())
+	err = internal.WriteUint32(buf, uint32(token))
 	if err != nil {
 		return nil, err
 	}

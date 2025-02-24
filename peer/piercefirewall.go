@@ -23,7 +23,7 @@ func (p PierceFirewall) Serialize(token soul.Token) ([]byte, error) {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, token.Uint32())
+	err = internal.WriteUint32(buf, uint32(token))
 	if err != nil {
 		return nil, err
 	}

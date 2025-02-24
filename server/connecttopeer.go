@@ -30,7 +30,7 @@ func (c ConnectToPeer) Serialize(token soul.Token, username string, connType sou
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, token.Uint32())
+	err = internal.WriteUint32(buf, uint32(token))
 	if err != nil {
 		return nil, err
 	}

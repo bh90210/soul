@@ -11,8 +11,7 @@ import (
 func TestTransferInit(t *testing.T) {
 	t.Parallel()
 
-	var token soul.Token
-	token.Gen()
+	token := soul.NewToken()
 
 	transferInit := new(TransferInit)
 	r, err := transferInit.Serialize(token)
