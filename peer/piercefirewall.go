@@ -13,17 +13,17 @@ import (
 const PierceFirewallCode soul.PeerInitCode = 0
 
 type PierceFirewall struct {
-	Token uint32
+	Token soul.Token
 }
 
-func (p PierceFirewall) Serialize(token uint32) ([]byte, error) {
+func (p PierceFirewall) Serialize(token soul.Token) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(PierceFirewallCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, token)
+	err = internal.WriteUint32(buf, token.Uint32())
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (p *PierceFirewall) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %v, got %v", PierceFirewallCode, code))
 	}
 
-	p.Token, err = internal.ReadUint32(reader)
+	p.Token, err = internal.ReadUint32ToToken(reader)
 	if err != nil {
 		return err
 	}

@@ -15,9 +15,10 @@ import (
 type Client struct {
 	Config *Config
 
-	conn net.Conn
-	m    map[soul.ServerCode][]io.Reader
-	mu   sync.Mutex
+	conn   net.Conn
+	m      map[soul.ServerCode][]io.Reader
+	mu     sync.Mutex
+	search map[soul.Token][]SearchResult
 }
 
 func (s *Client) Dial() (err error) {
@@ -27,6 +28,7 @@ func (s *Client) Dial() (err error) {
 	}
 
 	s.m = make(map[soul.ServerCode][]io.Reader)
+	s.search = make(map[soul.Token][]SearchResult)
 
 	return
 }

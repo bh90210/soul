@@ -11,7 +11,7 @@ const UserSearchCode soul.ServerCode = 42
 
 type UserSearch struct{}
 
-func (u UserSearch) Serialize(username string, token uint32, searchQuery string) ([]byte, error) {
+func (u UserSearch) Serialize(username string, token soul.Token, searchQuery string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(UserSearchCode))
 	if err != nil {
@@ -23,7 +23,7 @@ func (u UserSearch) Serialize(username string, token uint32, searchQuery string)
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, token)
+	err = internal.WriteUint32(buf, token.Uint32())
 	if err != nil {
 		return nil, err
 	}

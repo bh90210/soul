@@ -11,7 +11,7 @@ const RoomSearchCode soul.ServerCode = 120
 
 type RoomSearch struct{}
 
-func (r RoomSearch) Serialize(room string, token uint32, searchQuery string) ([]byte, error) {
+func (r RoomSearch) Serialize(room string, token soul.Token, searchQuery string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(RoomSearchCode))
 	if err != nil {
@@ -23,7 +23,7 @@ func (r RoomSearch) Serialize(room string, token uint32, searchQuery string) ([]
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, token)
+	err = internal.WriteUint32(buf, token.Uint32())
 	if err != nil {
 		return nil, err
 	}

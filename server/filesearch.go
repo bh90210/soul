@@ -14,18 +14,18 @@ const FileSearchCode soul.ServerCode = 26
 
 type FileSearch struct {
 	Username    string
-	Token       uint32
+	Token       soul.Token
 	SearchQuery string
 }
 
-func (f FileSearch) Serialize(token uint32, searchQuery string) ([]byte, error) {
+func (f FileSearch) Serialize(token soul.Token, searchQuery string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(FileSearchCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, token)
+	err = internal.WriteUint32(buf, token.Uint32())
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (f *FileSearch) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	f.Token, err = internal.ReadUint32(reader)
+	f.Token, err = internal.ReadUint32ToToken(reader)
 	if err != nil {
 		return err
 	}

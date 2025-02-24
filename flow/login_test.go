@@ -7,6 +7,10 @@ import (
 )
 
 func TestLogin(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
 	loginMessage, err := s.Login()
 	assert.NoError(t, err)
 	assert.NotNil(t, loginMessage)

@@ -18,19 +18,19 @@ type ConnectToPeer struct {
 	Type           soul.ConnectionType
 	IP             net.IP
 	Port           int
-	Token          uint32
+	Token          soul.Token
 	Privileged     bool
 	ObfuscatedPort int
 }
 
-func (c ConnectToPeer) Serialize(token uint32, username string, connType soul.ConnectionType) ([]byte, error) {
+func (c ConnectToPeer) Serialize(token soul.Token, username string, connType soul.ConnectionType) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(ConnectToPeerCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, token)
+	err = internal.WriteUint32(buf, token.Uint32())
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (c *ConnectToPeer) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	c.Token, err = internal.ReadUint32(reader)
+	c.Token, err = internal.ReadUint32ToToken(reader)
 	if err != nil {
 		return err
 	}

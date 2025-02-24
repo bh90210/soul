@@ -3,6 +3,7 @@ package soul
 
 import (
 	"errors"
+	"math/rand/v2"
 )
 
 const (
@@ -21,6 +22,17 @@ const (
 	// Distributed connection type: Distributed Network.
 	Distributed ConnectionType = "D"
 )
+
+type Token uint32
+
+func (t *Token) Gen() {
+	n := rand.Uint32()
+	*t = Token(n)
+}
+
+func (t Token) Uint32() uint32 {
+	return uint32(t)
+}
 
 var ErrMismatchingCodes = errors.New("mismatching codes")
 
@@ -52,6 +64,20 @@ func (s ServerCode) String() string {
 		return "UserJoinedRoom"
 	case 17:
 		return "UserLeftRoom"
+	case 18:
+		return "ConnectToPeer"
+	case 22:
+		return "MessageUser"
+	case 23:
+		return "MessageAcked"
+	case 26:
+		return "FileSearch"
+	case 28:
+		return "SetStatus"
+	case 32:
+		return "ServerPing"
+	case 35:
+		return "SharedFoldersFiles"
 
 	default:
 		return "Unknown"

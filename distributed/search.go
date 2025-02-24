@@ -14,11 +14,11 @@ const SearchCode soul.DistributedCode = 3
 
 type Search struct {
 	Username string
-	Token    uint32
+	Token    soul.Token
 	Query    string
 }
 
-func (d Search) Serialize(token uint32, username, query string) ([]byte, error) {
+func (d Search) Serialize(token soul.Token, username, query string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(SearchCode))
 	if err != nil {
@@ -35,7 +35,7 @@ func (d Search) Serialize(token uint32, username, query string) ([]byte, error) 
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, token)
+	err = internal.WriteUint32(buf, token.Uint32())
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (d *Search) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	d.Token, err = internal.ReadUint32(reader)
+	d.Token, err = internal.ReadUint32ToToken(reader)
 	if err != nil {
 		return err
 	}

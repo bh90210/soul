@@ -2,7 +2,9 @@ package main
 
 import (
 	"os"
+	"time"
 
+	"github.com/bh90210/soul"
 	"github.com/bh90210/soul/flow"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -14,14 +16,14 @@ func main() {
 
 	// Setup the server configuration.
 	client.Config = &flow.Config{
-		Username: "kokomploko123",
-		Password: "sizbty$%YDHFGfg",
-		// SoulseekAddress: "server.slsknet.org",
-		SoulseekAddress: "localhost", // Local dev.
-		SoulseekPort:    2242,
-		SharedFolders:   1,
-		SharedFiles:     1,
-		LogLevel:        zerolog.DebugLevel,
+		Username:        "kokomploko123",
+		Password:        "sizbty$%YDHFGfg",
+		SoulseekAddress: "server.slsknet.org",
+		// SoulseekAddress: "localhost", // Local dev.
+		SoulseekPort:  2242,
+		SharedFolders: 1,
+		SharedFiles:   1,
+		LogLevel:      zerolog.DebugLevel,
 	}
 
 	// Setup logger.
@@ -52,10 +54,28 @@ func main() {
 		log.Fatal().Err(err).Msg("login")
 	}
 
-	log.Debug().Any("login message", loginMessage).Msg("login success")
+	log.Debug().Any("login message", loginMessage.Login).Msg("login success")
 
 	// When connected, start pinging the server.
 	go client.Ping()
+
+	time.Sleep(2 * time.Second)
+
+	var token soul.Token
+	token.Gen()
+
+	err = client.GlobalSearch(token, "bob marley kaya")
+	if err != nil {
+		log.Fatal().Err(err).Msg("global search")
+	}
+
+	go func() {
+		for {
+			res := client.PollSearchResults(token)
+			log.Debug().Any("search results", res).Msg("poll search results")
+			time.Sleep(5000 * time.Millisecond)
+		}
+	}()
 
 	select {}
 }

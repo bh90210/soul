@@ -13,18 +13,18 @@ import (
 const CantConnectToPeerCode soul.ServerCode = 1001
 
 type CantConnectToPeer struct {
-	Token    uint32
+	Token    soul.Token
 	Username string
 }
 
-func (c CantConnectToPeer) Serialize(token uint32, username string) ([]byte, error) {
+func (c CantConnectToPeer) Serialize(token soul.Token, username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CantConnectToPeerCode))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, token)
+	err = internal.WriteUint32(buf, token.Uint32())
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (c *CantConnectToPeer) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", CantConnectToPeerCode, code))
 	}
 
-	c.Token, err = internal.ReadUint32(reader)
+	c.Token, err = internal.ReadUint32ToToken(reader)
 	if err != nil {
 		return err
 	}

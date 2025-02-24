@@ -263,7 +263,7 @@ func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 			go func(code soul.ServerCode) {
 				c.mu.Lock()
 				if r, ok := c.m[code]; ok {
-					if len(r) > 0 {
+					if len(r) >= 1 {
 						switch code {
 						case server.RoomListCode:
 							l.RoomList = new(server.RoomList)

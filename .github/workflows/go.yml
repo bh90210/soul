@@ -20,6 +20,9 @@ jobs:
 
     # - name: Test
     #   run: go test --cover -covermode=atomic -coverpkg=./... ./... -coverprofile=coverage.txt
+	
+	# - name: Short Test
+	#   run: go test -race -short --cover -covermode=atomic -coverpkg=./... ./... -coverprofile=coverage.txt
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5

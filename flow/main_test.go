@@ -1,13 +1,21 @@
 package flow
 
 import (
+	"flag"
 	"log"
+	"os"
 	"testing"
 )
 
 var s *Client
 
 func TestMain(m *testing.M) {
+	flag.Parse()
+
+	if testing.Short() {
+		os.Exit(0)
+	}
+
 	s = new(Client)
 	s.Config = &Config{
 		SoulseekAddress: "server.slsknet.org",

@@ -30,6 +30,7 @@ func MessageRead[C Code](c C, connection net.Conn) (io.Reader, int, C, error) {
 
 	// Read the code of the message.
 	var code C
+	var readAlready int
 	switch any(c).(type) {
 	case soul.PeerInitCode, soul.DistributedCode:
 		c, err := ReadUint8(messageHeader)
@@ -39,6 +40,8 @@ func MessageRead[C Code](c C, connection net.Conn) (io.Reader, int, C, error) {
 
 		code = C(c)
 
+		readAlready = 1
+
 	case soul.ServerCode, soul.PeerCode:
 		c, err := ReadUint32(messageHeader)
 		if err != nil {
@@ -46,20 +49,22 @@ func MessageRead[C Code](c C, connection net.Conn) (io.Reader, int, C, error) {
 		}
 
 		code = C(c)
+
+		readAlready = 4
 	}
 
 	// Now we simply copy a packet size read from the connection to the message buffer.
 	// This continues writing the message buffer from where the TeeReader left off.
 	// The size of the actual message read needs -4 to account for the packet
 	// size and code reads that happened above.
-	n, err := io.CopyN(message, connection, int64(size-4))
+	n, err := io.CopyN(message, connection, int64(size)-int64(readAlready))
 	if err != nil {
 		return nil, 0, 0, err
 	}
 
 	// Conversely, we need to add 4 to the size of the total read to account for the
 	// size and code reads that are missing from CopyN.
-	n += 4
+	n += int64(readAlready)
 
 	if int64(size) != n {
 		return nil, 0, 0, soul.ErrDifferentPacketSize
@@ -150,6 +155,15 @@ func ReadUint32ToInt(buf io.Reader) (int, error) {
 	}
 
 	return int(v), nil
+}
+
+func ReadUint32ToToken(buf io.Reader) (soul.Token, error) {
+	v, err := ReadUint32(buf)
+	if err != nil {
+		return 0, err
+	}
+
+	return soul.Token(v), nil
 }
 
 func ReadUint64(reader io.Reader) (uint64, error) {
