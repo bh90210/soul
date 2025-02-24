@@ -11,17 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPack(t *testing.T) {
-	t.Parallel()
-
-	expected := []byte{1, 0, 0, 0, 1}
-
-	actual, err := Pack([]byte{1})
-	assert.NoError(t, err)
-	assert.Equal(t, expected, actual)
-
-}
-
 func TestMessageRead(t *testing.T) {
 	t.Parallel()
 
@@ -138,6 +127,16 @@ func TestMessageWrite(t *testing.T) {
 	assert.Equal(t, 1, n)
 
 	wg.Wait()
+}
+func TestPack(t *testing.T) {
+	t.Parallel()
+
+	expected := []byte{1, 0, 0, 0, 1}
+
+	actual, err := Pack([]byte{1})
+	assert.NoError(t, err)
+	assert.Equal(t, expected, actual)
+
 }
 
 func TestReadUint8(t *testing.T) {

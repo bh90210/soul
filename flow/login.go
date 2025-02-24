@@ -103,7 +103,7 @@ func (c *Client) sendRestOfLoginMessages() error {
 	time.Sleep(50 * time.Millisecond)
 
 	port := new(server.SetListenPort)
-	portMessage, err := port.Serialize(uint32(c.Config.SoulseekPort))
+	portMessage, err := port.Serialize(uint32(c.Config.OwnPort))
 	if err != nil {
 		return err
 	}

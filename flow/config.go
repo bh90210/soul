@@ -5,6 +5,7 @@ import "github.com/rs/zerolog"
 type Config struct {
 	SoulseekAddress string
 	SoulseekPort    int
+	OwnPort         int
 	Username        string
 	Password        string
 	SharedFolders   int

@@ -89,6 +89,18 @@ var ErrSizeZero = errors.New("file size is zero")
 var ErrEmptyFileExtension = errors.New("file extension is empty")
 
 func (s SharedFileListResponse) walkWrite(directories []Directory, gzw *gzip.Writer) error {
+	for _, directory := range directories {
+		if directory.Name == "" {
+			return ErrEmptyDirectoryName
+		}
+
+		if len(directory.Files) == 0 {
+			return ErrEmptyFileDirectory
+		}
+
+		// err := internal.WriteString(gzw, directory.Name)
+	}
+
 	return nil
 }
 

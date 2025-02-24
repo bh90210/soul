@@ -11,7 +11,7 @@ func TestLogin(t *testing.T) {
 		t.Skip()
 	}
 
-	loginMessage, err := s.Login()
+	loginMessage, err := user1.Login()
 	assert.NoError(t, err)
 	assert.NotNil(t, loginMessage)
 }
