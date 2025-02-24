@@ -70,6 +70,15 @@ func (l Login) Serialize(username string, password string) ([]byte, error) {
 	return internal.Pack(buf.Bytes())
 }
 
+// ErrInvalidUsername username is longer than 30 characters or contains invalid characters (non-ASCII)
+var ErrInvalidUsername = errors.New("INVALIDUSERNAME")
+
+// ErrInvalidPass Password for existing user is incorrect.
+var ErrInvalidPass = errors.New("INVALIDPASS")
+
+// ErrInvalidVersion Client version is outdated.
+var ErrInvalidVersion = errors.New("INVALIDVERSION")
+
 // Deserialize accepts a reader (from the TCP connection) and reads the response from the server.
 // It returns a Response struct containing either a Success or a Failure.
 // Consumers of Deserialize must check if the response is OK before proceeding
@@ -96,14 +105,27 @@ func (l *Login) Deserialize(reader io.Reader) error {
 	}
 
 	if !success {
-		return readFailure(reader)
+		errMessage, err := internal.ReadString(reader)
+		if err != nil && !errors.Is(err, io.EOF) {
+			return err
+		}
+
+		switch errMessage {
+		case "INVALIDUSERNAME":
+			return ErrInvalidUsername
+
+		case "INVALIDPASS":
+			return ErrInvalidPass
+
+		case "INVALIDVERSION":
+			return ErrInvalidVersion
+		}
+
+		// This is not suppose to happen thus we are not
+		// dedicating a new var Err for it.
+		return fmt.Errorf("unknown login failure: %s", errMessage)
 	}
 
-	return l.readSuccess(reader)
-}
-
-func (l *Login) readSuccess(reader io.Reader) error {
-	var err error
 	l.Greet, err = internal.ReadString(reader)
 	if err != nil {
 		return err
@@ -118,37 +140,6 @@ func (l *Login) readSuccess(reader io.Reader) error {
 
 	l.Sum, err = internal.ReadString(reader)
 	return err
-}
-
-// ErrInvalidUsername username is longer than 30 characters or contains invalid characters (non-ASCII)
-var ErrInvalidUsername = errors.New("INVALIDUSERNAME")
-
-// ErrInvalidPass Password for existing user is incorrect.
-var ErrInvalidPass = errors.New("INVALIDPASS")
-
-// ErrInvalidVersion Client version is outdated.
-var ErrInvalidVersion = errors.New("INVALIDVERSION")
-
-func readFailure(reader io.Reader) error {
-	errMessage, err := internal.ReadString(reader)
-	if err != nil && !errors.Is(err, io.EOF) {
-		return err
-	}
-
-	switch errMessage {
-	case "INVALIDUSERNAME":
-		return errors.Join(err, ErrInvalidUsername)
-
-	case "INVALIDPASS":
-		return errors.Join(err, ErrInvalidPass)
-
-	case "INVALIDVERSION":
-		return errors.Join(err, ErrInvalidVersion)
-	}
-
-	// This is not suppose to happen thus we are not
-	// dedicating a new var Err for it.
-	return fmt.Errorf("unknown login failure: %s", errMessage)
 }
 
 func sum(username string, password string) ([]byte, error) {
