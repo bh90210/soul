@@ -20,7 +20,7 @@ The library is thoroughly covered via unit and integration tests. Running the `-
 
 ### Unit
 ```bash
-go test -race -count 10 -parallel 10 -short --cover -covermode=atomic -coverpkg=./... ./... -coverprofile=coverage.txt
+go test -short -race -count 10 -parallel 10 --cover -covermode=atomic -coverpkg=./... ./... -coverprofile=coverage.txt
 ```
 ### Integration
 

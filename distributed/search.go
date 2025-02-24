@@ -10,14 +10,18 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
+// SearchCode 3.
 const SearchCode soul.DistributedCode = 3
 
+// Search request that arrives through the distributed network.
+// We transmit the search request to our child peers.
 type Search struct {
 	Token    soul.Token
 	Username string
 	Query    string
 }
 
+// Serialize accepts a token, username, and query and returns a message packed as a byte slice.
 func (d Search) Serialize(token soul.Token, username, query string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(SearchCode))
@@ -48,6 +52,7 @@ func (d Search) Serialize(token soul.Token, username, query string) ([]byte, err
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize accepts a reader and deserializes the message into the Search struct.
 func (d *Search) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

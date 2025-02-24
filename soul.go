@@ -1,4 +1,4 @@
-// Package soul holds the common types and functions used by the rest of the packages.
+// Package soul holds the common types used by the rest of the sub-packages.
 package soul
 
 import (

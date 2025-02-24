@@ -1,3 +1,4 @@
+// Package internal holds low level functions that are meant to be used internally only.
 package internal
 
 import (
@@ -9,10 +10,16 @@ import (
 	"github.com/bh90210/soul"
 )
 
+// Code is an interface that is used to determine the type of the message.
+// It is used in the MessageRead function to determine the type of the message
+// that is being read from the connection.
 type Code interface {
 	soul.ServerCode | soul.PeerInitCode | soul.PeerCode | soul.DistributedCode
 }
 
+// MessageRead reads a message from the connection. It reads the size of the message
+// and the code of the message. It then reads the message from the connection and
+// returns the message, the size of the message, the code of the message and an error.
 func MessageRead[C Code](c C, connection net.Conn) (io.Reader, int, C, error) {
 	message := new(bytes.Buffer)
 
@@ -73,6 +80,8 @@ func MessageRead[C Code](c C, connection net.Conn) (io.Reader, int, C, error) {
 	return message, int(size), code, nil
 }
 
+// MessageWrite writes a message to the connection. It writes the message to the connection
+// and returns the number of bytes written and an error.
 func MessageWrite(connection net.Conn, message []byte) (int, error) {
 	n, err := connection.Write(message)
 	if err != nil {
@@ -82,6 +91,8 @@ func MessageWrite(connection net.Conn, message []byte) (int, error) {
 	return n, nil
 }
 
+// Pack packs the data into a byte slice. It writes the size of the data and the data
+// into a buffer and returns the buffer as a byte slice.
 func Pack(data []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, uint32(len(data)))
@@ -97,6 +108,7 @@ func Pack(data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// ReadUint8 reads a uint8 value from the buffer.
 func ReadUint8(buf io.Reader) (uint8, error) {
 	var val uint8
 	err := binary.Read(buf, binary.LittleEndian, &val)
@@ -107,10 +119,12 @@ func ReadUint8(buf io.Reader) (uint8, error) {
 	return val, nil
 }
 
+// WriteUint8 writes a uint8 value to the buffer.
 func WriteUint8(buf io.Writer, val uint8) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
+// ReadInt32 reads an int32 value from the buffer.
 func ReadInt32(buf io.Reader) (int32, error) {
 	var val int32
 	err := binary.Read(buf, binary.LittleEndian, &val)
@@ -121,10 +135,12 @@ func ReadInt32(buf io.Reader) (int32, error) {
 	return val, nil
 }
 
+// WriteInt32 writes an int32 value to the buffer.
 func WriteInt32(buf io.Writer, val int32) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
+// ReadInt32ToInt reads an int32 value from the buffer and converts it to an int.
 func ReadInt32ToInt(buf io.Reader) (int, error) {
 	val, err := ReadInt32(buf)
 	if err != nil {
@@ -134,6 +150,7 @@ func ReadInt32ToInt(buf io.Reader) (int, error) {
 	return int(val), nil
 }
 
+// ReadUint32 reads a uint32 value from the buffer.
 func ReadUint32(buf io.Reader) (uint32, error) {
 	var val uint32
 	err := binary.Read(buf, binary.LittleEndian, &val)
@@ -144,10 +161,12 @@ func ReadUint32(buf io.Reader) (uint32, error) {
 	return val, nil
 }
 
+// WriteUint32 writes a uint32 value to the buffer.
 func WriteUint32(buf io.Writer, val uint32) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
+// ReadUint32ToInt reads a uint32 value from the buffer and converts it to an int.
 func ReadUint32ToInt(buf io.Reader) (int, error) {
 	v, err := ReadUint32(buf)
 	if err != nil {
@@ -157,6 +176,7 @@ func ReadUint32ToInt(buf io.Reader) (int, error) {
 	return int(v), nil
 }
 
+// ReadUint32ToToken reads a uint32 value from the buffer and converts it to a Token.
 func ReadUint32ToToken(buf io.Reader) (soul.Token, error) {
 	v, err := ReadUint32(buf)
 	if err != nil {
@@ -166,6 +186,7 @@ func ReadUint32ToToken(buf io.Reader) (soul.Token, error) {
 	return soul.Token(v), nil
 }
 
+// ReadUint64 reads a uint64 value from the buffer.
 func ReadUint64(reader io.Reader) (uint64, error) {
 	var val uint64
 	err := binary.Read(reader, binary.LittleEndian, &val)
@@ -176,10 +197,12 @@ func ReadUint64(reader io.Reader) (uint64, error) {
 	return val, nil
 }
 
+// WriteUint64 writes a uint64 value to the buffer.
 func WriteUint64(buf io.Writer, val uint64) error {
 	return binary.Write(buf, binary.LittleEndian, val)
 }
 
+// ReadUint64ToInt reads a uint64 value from the buffer and converts it to an int.
 func ReadUint64ToInt(buf io.Reader) (int, error) {
 	val, err := ReadUint64(buf)
 	if err != nil {
@@ -189,6 +212,7 @@ func ReadUint64ToInt(buf io.Reader) (int, error) {
 	return int(val), nil
 }
 
+// NewString creates a byte slice from a string.
 func NewString(val string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	_, err := buf.WriteString(val)
@@ -199,6 +223,7 @@ func NewString(val string) ([]byte, error) {
 	return Pack(buf.Bytes())
 }
 
+// ReadString reads a string from the buffer.
 func ReadString(reader io.Reader) (string, error) {
 	size, err := ReadUint32(reader)
 	if err != nil {
@@ -214,6 +239,7 @@ func ReadString(reader io.Reader) (string, error) {
 	return string(buf), nil
 }
 
+// WriteString writes a string to the buffer.
 func WriteString(buf io.Writer, val string) error {
 	c, err := NewString(val)
 	if err != nil {
@@ -228,6 +254,7 @@ func WriteString(buf io.Writer, val string) error {
 	return nil
 }
 
+// ReadBool reads a bool value from the buffer.
 func ReadBool(reader io.Reader) (bool, error) {
 	var val uint8
 
@@ -239,6 +266,7 @@ func ReadBool(reader io.Reader) (bool, error) {
 	return val == 1, nil
 }
 
+// WriteBool writes a bool value to the buffer.
 func WriteBool(buf io.Writer, val bool) error {
 	var b uint8
 	if val {
@@ -248,6 +276,7 @@ func WriteBool(buf io.Writer, val bool) error {
 	return binary.Write(buf, binary.LittleEndian, b)
 }
 
+// ReadBytes reads a byte slice from the buffer.
 func ReadBytes(reader io.Reader) ([]byte, error) {
 	size, err := ReadUint32(reader)
 	if err != nil {
@@ -263,6 +292,7 @@ func ReadBytes(reader io.Reader) ([]byte, error) {
 	return buf, nil
 }
 
+// WriteBytes writes a byte slice to the buffer.
 func WriteBytes(buf io.Writer, content []byte) error {
 	err := binary.Write(buf, binary.LittleEndian, uint32(len(content)))
 	if err != nil {
@@ -277,6 +307,7 @@ func WriteBytes(buf io.Writer, content []byte) error {
 	return nil
 }
 
+// ReadIP reads an IP address in uint32 and returns net.IP..
 func ReadIP(val uint32) net.IP {
 	ip := make(net.IP, 4)
 	binary.BigEndian.PutUint32(ip, val) // TODO: check why endianess is different than the rest.

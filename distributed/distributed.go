@@ -11,10 +11,12 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
+// MessageRead reads a message from a distributed connection.
 func MessageRead(connection net.Conn) (io.Reader, int, soul.DistributedCode, error) {
 	return internal.MessageRead(soul.DistributedCode(0), connection)
 }
 
+// MessageWrite writes a message to a distributed connection.
 func MessageWrite(connection net.Conn, message []byte) (int, error) {
 	return internal.MessageWrite(connection, message)
 }
