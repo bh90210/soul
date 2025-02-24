@@ -40,50 +40,6 @@ var ErrDifferentPacketSize = errors.New("the declared size of the package does n
 
 type ServerCode int
 
-func (s ServerCode) String() string {
-	switch s {
-	case 1:
-		return "Login"
-	case 2:
-		return "SetListenPort"
-	case 3:
-		return "GetPeerAddress"
-	case 5:
-		return "WatchUser"
-	case 6:
-		return "UnwatchUser"
-	case 7:
-		return "GetUserStatus"
-	case 13:
-		return "SayChatroom"
-	case 14:
-		return "JoinRoom"
-	case 15:
-		return "LeaveRoom"
-	case 16:
-		return "UserJoinedRoom"
-	case 17:
-		return "UserLeftRoom"
-	case 18:
-		return "ConnectToPeer"
-	case 22:
-		return "MessageUser"
-	case 23:
-		return "MessageAcked"
-	case 26:
-		return "FileSearch"
-	case 28:
-		return "SetStatus"
-	case 32:
-		return "ServerPing"
-	case 35:
-		return "SharedFoldersFiles"
-
-	default:
-		return "Unknown"
-	}
-}
-
 type PeerInitCode int
 
 type PeerCode int

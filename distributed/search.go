@@ -13,8 +13,8 @@ import (
 const SearchCode soul.DistributedCode = 3
 
 type Search struct {
-	Username string
 	Token    soul.Token
+	Username string
 	Query    string
 }
 

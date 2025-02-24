@@ -24,7 +24,7 @@ func (d EmbeddedMessage) Serialize(code soul.DistributedCode, message []byte) ([
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(code))
+	err = internal.WriteUint8(buf, uint8(code))
 	if err != nil {
 		return nil, err
 	}

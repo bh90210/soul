@@ -11,97 +11,109 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMessageReadUint8(t *testing.T) {
+func TestPack(t *testing.T) {
 	t.Parallel()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	expected := []byte{1, 0, 0, 0, 1}
 
-	server, client := net.Pipe()
-	go func() {
-		defer wg.Done()
-
-		buf := new(bytes.Buffer)
-
-		err := WriteUint8(buf, uint8(0)) // Code.
-		assert.NoError(t, err)
-
-		err = WriteUint32(buf, 1) // Data.
-		assert.NoError(t, err)
-
-		b, err := Pack(buf.Bytes())
-		assert.NoError(t, err)
-
-		n, err := server.Write(b)
-		assert.NoError(t, err)
-		assert.Equal(t, 9, n)
-
-	}()
-
-	r, size, code, err := MessageRead(soul.PeerInitCode(0), client)
+	actual, err := Pack([]byte{1})
 	assert.NoError(t, err)
-	assert.Equal(t, 5, size)
-	assert.Equal(t, soul.PeerInitCode(0), code)
+	assert.Equal(t, expected, actual)
 
-	s, err := ReadUint32(r) // Size.
-	assert.NoError(t, err)
-	assert.Equal(t, uint32(5), s)
-
-	c, err := ReadUint8(r) // Code.
-	assert.NoError(t, err)
-	assert.Equal(t, uint8(0), c)
-
-	m, err := ReadUint32(r) // Data.
-	assert.NoError(t, err)
-	assert.Equal(t, uint32(1), m)
-
-	wg.Wait()
 }
 
-func TestMessageReadUint32(t *testing.T) {
+func TestMessageRead(t *testing.T) {
 	t.Parallel()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	t.Run("Uint8", func(t *testing.T) {
+		var wg sync.WaitGroup
+		wg.Add(1)
 
-	server, client := net.Pipe()
-	go func() {
-		defer wg.Done()
+		server, client := net.Pipe()
+		go func() {
+			defer wg.Done()
 
-		buf := new(bytes.Buffer)
+			buf := new(bytes.Buffer)
 
-		err := WriteUint32(buf, 0) // Code.
+			err := WriteUint8(buf, uint8(0)) // Code.
+			assert.NoError(t, err)
+
+			err = WriteUint32(buf, 1) // Data.
+			assert.NoError(t, err)
+
+			b, err := Pack(buf.Bytes())
+			assert.NoError(t, err)
+
+			n, err := server.Write(b)
+			assert.NoError(t, err)
+			assert.Equal(t, 9, n)
+
+		}()
+
+		r, size, code, err := MessageRead(soul.PeerInitCode(0), client)
 		assert.NoError(t, err)
+		assert.Equal(t, 5, size)
+		assert.Equal(t, soul.PeerInitCode(0), code)
 
-		err = WriteUint32(buf, 1) // Data.
+		s, err := ReadUint32(r) // Size.
 		assert.NoError(t, err)
+		assert.Equal(t, uint32(5), s)
 
-		b, err := Pack(buf.Bytes())
+		c, err := ReadUint8(r) // Code.
 		assert.NoError(t, err)
+		assert.Equal(t, uint8(0), c)
 
-		n, err := server.Write(b)
+		m, err := ReadUint32(r) // Data.
 		assert.NoError(t, err)
-		assert.Equal(t, 12, n)
-	}()
+		assert.Equal(t, uint32(1), m)
 
-	r, size, code, err := MessageRead(soul.ServerCode(0), client)
-	assert.NoError(t, err)
-	assert.Equal(t, 8, size)
-	assert.Equal(t, soul.ServerCode(0), code)
+		wg.Wait()
+	})
 
-	s, err := ReadUint32(r) // Size.
-	assert.NoError(t, err)
-	assert.Equal(t, uint32(8), s)
+	t.Run("Uint32", func(t *testing.T) {
+		var wg sync.WaitGroup
+		wg.Add(1)
 
-	c, err := ReadUint32(r) // Code.
-	assert.NoError(t, err)
-	assert.Equal(t, uint32(0), c)
+		server, client := net.Pipe()
+		go func() {
+			defer wg.Done()
 
-	m, err := ReadUint32(r) // Data.
-	assert.NoError(t, err)
-	assert.Equal(t, uint32(1), m)
+			buf := new(bytes.Buffer)
 
-	wg.Wait()
+			err := WriteUint32(buf, 0) // Code.
+			assert.NoError(t, err)
+
+			err = WriteUint32(buf, 1) // Data.
+			assert.NoError(t, err)
+
+			b, err := Pack(buf.Bytes())
+			assert.NoError(t, err)
+
+			n, err := server.Write(b)
+			assert.NoError(t, err)
+			assert.Equal(t, 12, n)
+		}()
+
+		r, size, code, err := MessageRead(soul.ServerCode(0), client)
+		assert.NoError(t, err)
+		assert.Equal(t, 8, size)
+		assert.Equal(t, soul.ServerCode(0), code)
+
+		s, err := ReadUint32(r) // Size.
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(8), s)
+
+		c, err := ReadUint32(r) // Code.
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(0), c)
+
+		m, err := ReadUint32(r) // Data.
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(1), m)
+
+		wg.Wait()
+	})
+
 }
 
 func TestMessageWrite(t *testing.T) {
@@ -126,17 +138,6 @@ func TestMessageWrite(t *testing.T) {
 	assert.Equal(t, 1, n)
 
 	wg.Wait()
-}
-
-func TestPack(t *testing.T) {
-	t.Parallel()
-
-	expected := []byte{1, 0, 0, 0, 1}
-
-	actual, err := Pack([]byte{1})
-	assert.NoError(t, err)
-	assert.Equal(t, expected, actual)
-
 }
 
 func TestReadUint8(t *testing.T) {

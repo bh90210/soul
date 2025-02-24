@@ -23,11 +23,6 @@ func (d BranchLevel) Serialize(branchLevel int32) ([]byte, error) {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(0))
-	if err != nil {
-		return nil, err
-	}
-
 	err = internal.WriteInt32(buf, branchLevel)
 	if err != nil {
 		return nil, err

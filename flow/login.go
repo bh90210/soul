@@ -75,7 +75,7 @@ func (c *Client) checkUsernamePassword(l *LoginMessage) (err error) {
 					return
 				}
 
-				log.Debug().Any("code", server.LoginCode).Str("greet", l.Login.Greet).IPAddr("ip", l.Login.IP).Str("sum", l.Login.Sum).Msg(server.LoginCode.String())
+				log.Debug().Any("code", server.LoginCode).Str("greet", l.Login.Greet).IPAddr("ip", l.Login.IP).Str("sum", l.Login.Sum).Send()
 
 				c.m[server.LoginCode] = c.m[server.LoginCode][1:]
 				c.mu.Unlock()
@@ -273,7 +273,7 @@ func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 								return
 							}
 
-							log.Debug().Any("code", code).Int("rooms", len(l.RoomList.Rooms)).Msg(code.String())
+							log.Debug().Any("code", code).Int("rooms", len(l.RoomList.Rooms)).Send()
 
 						case server.ParentMinSpeedCode:
 							l.ParentMinSpeed = new(server.ParentMinSpeed)
@@ -283,7 +283,7 @@ func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 								return
 							}
 
-							log.Debug().Any("code", code).Int("speed", l.ParentMinSpeed.MinSpeed).Msg(code.String())
+							log.Debug().Any("code", code).Int("speed", l.ParentMinSpeed.MinSpeed).Send()
 
 						case server.ParentSpeedRatioCode:
 							l.ParentSpeedRatio = new(server.ParentSpeedRatio)
@@ -293,7 +293,7 @@ func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 								return
 							}
 
-							log.Debug().Any("code", code).Int("ratio", l.ParentSpeedRatio.SpeedRatio).Msg(code.String())
+							log.Debug().Any("code", code).Int("ratio", l.ParentSpeedRatio.SpeedRatio).Send()
 
 						case server.WishlistIntervalCode:
 							l.WishlistInterval = new(server.WishlistInterval)
@@ -303,7 +303,7 @@ func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 								return
 							}
 
-							log.Debug().Any("code", code).Int("interval", l.WishlistInterval.Interval).Msg(code.String())
+							log.Debug().Any("code", code).Int("interval", l.WishlistInterval.Interval).Send()
 
 						case server.PrivilegedUsersCode:
 							l.PrivilegedUsers = new(server.PrivilegedUsers)
@@ -313,7 +313,7 @@ func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 								return
 							}
 
-							log.Debug().Any("code", code).Int("users", len(l.PrivilegedUsers.Users)).Msg(code.String())
+							log.Debug().Any("code", code).Int("users", len(l.PrivilegedUsers.Users)).Send()
 
 						case server.ExcludedSearchPhrasesCode:
 							l.ExcludedSearchPhrases = new(server.ExcludedSearchPhrases)
@@ -323,7 +323,7 @@ func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 								return
 							}
 
-							log.Debug().Any("code", code).Int("phrases", len(l.ExcludedSearchPhrases.Phrases)).Msg(code.String())
+							log.Debug().Any("code", code).Int("phrases", len(l.ExcludedSearchPhrases.Phrases)).Send()
 
 						case server.CheckPrivilegesCode:
 							l.CheckPrivileges = new(server.CheckPrivileges)
@@ -333,7 +333,7 @@ func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 								return
 							}
 
-							log.Debug().Any("code", code).Int("timeleft", l.CheckPrivileges.TimeLeft).Msg(code.String())
+							log.Debug().Any("code", code).Int("timeleft", l.CheckPrivileges.TimeLeft).Send()
 
 						case server.WatchUserCode:
 							l.WatchUser = new(server.WatchUser)
@@ -343,7 +343,7 @@ func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 								return
 							}
 
-							log.Debug().Any("code", code).Str("user", l.WatchUser.Username).Str("status", l.WatchUser.Status.String()).Msg(code.String())
+							log.Debug().Any("code", code).Str("user", l.WatchUser.Username).Str("status", l.WatchUser.Status.String()).Send()
 						}
 
 						c.m[code] = c.m[code][1:]
