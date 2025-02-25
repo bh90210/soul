@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	// MajorVersion is a known accepted client version accepted by the SoulSeek network.
-	MajorVersion uint32 = 160
-	// MinorVersion is a known accepted client version accepted by the SoulSeek network.
-	MinorVersion uint32 = 0
+	// VersionMajor is a known accepted client version accepted by the SoulSeek network.
+	VersionMajor uint32 = 160
+	// VersionMinor is a known accepted client version accepted by the SoulSeek network.
+	VersionMinor uint32 = 0
 )
 
 // ConnectionType represents the type of connection.

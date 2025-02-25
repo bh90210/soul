@@ -47,7 +47,7 @@ func (l Login) Serialize(username string, password string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, soul.MajorVersion)
+	err = internal.WriteUint32(buf, soul.VersionMajor)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (l Login) Serialize(username string, password string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, soul.MinorVersion)
+	err = internal.WriteUint32(buf, soul.VersionMinor)
 	if err != nil {
 		return nil, err
 	}
