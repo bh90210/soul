@@ -10,7 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const PrivateRoomToggleCode soul.ServerCode = 141
+const PrivateRoomToggleCode soul.CodeServer = 141
 
 type PrivateRoomToggle struct {
 	Enabled bool

@@ -10,10 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-// BranchRootCode 5.
-const BranchRootCode soul.DistributedCode = 5
-
-// BranchRoot we tell our distributed children the username of the root of the
+// BranchRoot code 5 we tell our distributed children the username of the root of the
 // branch we’re in on the distributed network. This message should not be sent
 // when we’re the branch root.
 type BranchRoot struct {
@@ -23,7 +20,7 @@ type BranchRoot struct {
 // Serialize accepts a root and returns a message packed as a byte slice.
 func (d BranchRoot) Serialize(root string) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := internal.WriteUint8(buf, uint8(BranchRootCode))
+	err := internal.WriteUint8(buf, uint8(CodeBranchRoot))
 	if err != nil {
 		return nil, err
 	}
@@ -48,9 +45,9 @@ func (d *BranchRoot) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	if code != uint8(BranchRootCode) {
+	if code != uint8(CodeBranchRoot) {
 		return errors.Join(soul.ErrMismatchingCodes,
-			fmt.Errorf("expected code %d, got %d", BranchRootCode, code))
+			fmt.Errorf("expected code %d, got %d", CodeBranchRoot, code))
 	}
 
 	d.Root, err = internal.ReadString(reader)

@@ -10,15 +10,14 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const PierceFirewallCode soul.PeerInitCode = 0
-
+// PierceFirewallCode code 0.
 type PierceFirewall struct {
 	Token soul.Token
 }
 
 func (p PierceFirewall) Serialize(token soul.Token) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := internal.WriteUint8(buf, uint8(PierceFirewallCode))
+	err := internal.WriteUint8(buf, uint8(CodePierceFirewall))
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +41,9 @@ func (p *PierceFirewall) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	if code != uint8(PierceFirewallCode) {
+	if code != uint8(CodePierceFirewall) {
 		return errors.Join(soul.ErrMismatchingCodes,
-			fmt.Errorf("expected code %v, got %v", PierceFirewallCode, code))
+			fmt.Errorf("expected code %v, got %v", CodePierceFirewall, code))
 	}
 
 	p.Token, err = internal.ReadUint32ToToken(reader)

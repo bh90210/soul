@@ -10,7 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const SayChatroomCode soul.ServerCode = 13
+const SayChatroomCode soul.CodeServer = 13
 
 type SayChatroom struct {
 	Room     string

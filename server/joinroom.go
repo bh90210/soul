@@ -10,7 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const JoinRoomCode soul.ServerCode = 14
+const JoinRoomCode soul.CodeServer = 14
 
 type JoinRoom struct {
 	Room  string

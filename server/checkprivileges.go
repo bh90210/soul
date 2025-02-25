@@ -10,7 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const CheckPrivilegesCode soul.ServerCode = 92
+const CheckPrivilegesCode soul.CodeServer = 92
 
 type CheckPrivileges struct {
 	TimeLeft int

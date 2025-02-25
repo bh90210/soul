@@ -7,7 +7,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const WishlistSearchCode soul.ServerCode = 103
+const WishlistSearchCode soul.CodeServer = 103
 
 type WishlistSearch struct{}
 

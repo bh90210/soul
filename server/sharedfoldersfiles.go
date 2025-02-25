@@ -7,7 +7,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const SharedFoldersFilesCode soul.ServerCode = 35
+const SharedFoldersFilesCode soul.CodeServer = 35
 
 type SharedFoldersFiles struct{}
 

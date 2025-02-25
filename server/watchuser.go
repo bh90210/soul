@@ -10,7 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const WatchUserCode soul.ServerCode = 5
+const WatchUserCode soul.CodeServer = 5
 
 type WatchUser struct {
 	Username     string
@@ -91,7 +91,7 @@ func (w *WatchUser) Deserialize(reader io.Reader) error {
 		}
 	}
 
-	if w.Status == Online || w.Status == Away {
+	if w.Status == StatusOnline || w.Status == StatusAway {
 		w.CountryCode, err = internal.ReadString(reader)
 		if err != nil {
 			return err

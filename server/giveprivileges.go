@@ -7,7 +7,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const GivePrivilegesCode soul.ServerCode = 123
+const GivePrivilegesCode soul.CodeServer = 123
 
 type GivePrivileges struct{}
 

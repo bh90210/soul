@@ -10,7 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const CantConnectToPeerCode soul.ServerCode = 1001
+const CantConnectToPeerCode soul.CodeServer = 1001
 
 type CantConnectToPeer struct {
 	Token    soul.Token

@@ -7,7 +7,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const BranchLevelCode soul.ServerCode = 126
+const BranchLevelCode soul.CodeServer = 126
 
 type BranchLevel struct{}
 

@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const UserLeftRoomCode soul.ServerCode = 17
+const UserLeftRoomCode soul.CodeServer = 17
 
 type UserLeftRoom struct {
 	Room     string

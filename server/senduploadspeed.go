@@ -7,7 +7,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const SendUploadSpeedCode soul.ServerCode = 121
+const SendUploadSpeedCode soul.CodeServer = 121
 
 type SendUploadSpeed struct{}
 

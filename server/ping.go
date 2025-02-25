@@ -7,7 +7,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const PingCode soul.ServerCode = 32
+const PingCode soul.CodeServer = 32
 
 type Ping struct{}
 

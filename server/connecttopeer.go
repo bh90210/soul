@@ -11,7 +11,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const ConnectToPeerCode soul.ServerCode = 18
+const ConnectToPeerCode soul.CodeServer = 18
 
 type ConnectToPeer struct {
 	Username       string

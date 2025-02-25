@@ -10,10 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-// BranchLevelCode 4.
-const BranchLevelCode soul.DistributedCode = 4
-
-// BranchLevel we tell our distributed children what our position is in our branch (xth generation)
+// BranchLevel code 4 we tell our distributed children what our position is in our branch (xth generation)
 // on the distributed network. If we receive a branch level of 0 from a parent, we should
 // mark the parent as our branch root, since they won’t send a DistribBranchRoot message
 // in this case.
@@ -24,7 +21,7 @@ type BranchLevel struct {
 // Serialize accepts a branch level and returns a message packed as a byte slice.
 func (d BranchLevel) Serialize(branchLevel int32) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := internal.WriteUint8(buf, uint8(BranchLevelCode))
+	err := internal.WriteUint8(buf, uint8(CodeBranchLevel))
 	if err != nil {
 		return nil, err
 	}
@@ -49,9 +46,9 @@ func (d *BranchLevel) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	if code != uint8(BranchLevelCode) {
+	if code != uint8(CodeBranchLevel) {
 		return errors.Join(soul.ErrMismatchingCodes,
-			fmt.Errorf("expected code %d, got %d", BranchLevelCode, code))
+			fmt.Errorf("expected code %d, got %d", CodeBranchLevel, code))
 	}
 
 	d.Level, err = internal.ReadInt32(reader)

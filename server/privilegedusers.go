@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const PrivilegedUsersCode soul.ServerCode = 69
+const PrivilegedUsersCode soul.CodeServer = 69
 
 type PrivilegedUsers struct {
 	Users []string

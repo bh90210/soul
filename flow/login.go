@@ -116,7 +116,7 @@ func (c *Client) sendRestOfLoginMessages() error {
 	time.Sleep(50 * time.Millisecond)
 
 	status := new(server.SetStatus)
-	statusMessage, err := status.Serialize(server.Online)
+	statusMessage, err := status.Serialize(server.StatusOnline)
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func (c *Client) sendRestOfLoginMessages() error {
 }
 
 func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
-	necessaryCodes := map[soul.ServerCode]bool{
+	necessaryCodes := map[soul.CodeServer]bool{
 		server.RoomListCode:              false,
 		server.ParentMinSpeedCode:        false,
 		server.ParentSpeedRatioCode:      false,
@@ -260,7 +260,7 @@ func (c *Client) checkRestOfLoginMessages(l *LoginMessage) (err error) {
 		}
 
 		for code := range necessaryCodes {
-			go func(code soul.ServerCode) {
+			go func(code soul.CodeServer) {
 				c.mu.Lock()
 				if r, ok := c.m[code]; ok {
 					if len(r) >= 1 {

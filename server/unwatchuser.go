@@ -7,7 +7,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const UnwatchUserCode soul.ServerCode = 6
+const UnwatchUserCode soul.CodeServer = 6
 
 type UnwatchUser struct{}
 

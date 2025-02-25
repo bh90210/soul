@@ -8,7 +8,7 @@ A Go implementation of the SoulSeek protocol.
 
 # Protocol Specification
 
-This implementation and naming is based on the [Nicotine+](https://nicotine-plus.github.io/nicotine-plus/doc/SLSKPROTOCOL.html) documentation but [aioslsk](https://aioslsk.readthedocs.io) was also consulted regularly too.
+This implementation and naming convention is based on the [Nicotine+](https://nicotine-plus.github.io/nicotine-plus/doc/SLSKPROTOCOL.html) documentation but [aioslsk](https://aioslsk.readthedocs.io) was also consulted regularly too.
 
 # How to use
 
@@ -18,20 +18,21 @@ SoulSeek protocol has 4 different connection types. Server, Peer, File and Distr
 
 Low level code facilitating the serialization and deserialization of each connection type and message code lives under the `server`, `peer`, `file` and `distributed` packages respectively. Each package offers a pair of Read/Write functions and the complete in use message codes (I did not implement obsolete protocol message codes.)
 
-Each message is a struct, for example to make use of the Login message you will need to:
+Each message is a struct, for example to make use of the server connection Login message code you need to:
 ```go
 login := new(server.Login)
-serializedMessage, _ := login.Serialize(username, password)
-server.MessageWrite(tcpConn, serializedMessage)
+message, _ := login.Serialize("username", "password")
+server.MessageWrite(tcpConn, message)
 ```
 
 And to receive the server response:
 ```go
-reader, size, messageCode, err := server.MessageRead(tcpConn)
+reader, _, messageCode, _ := server.MessageRead(tcpConn)
 switch messageCode {
 case server.LoginCode:
 	login := new(server.Login)
 	login.Deserialize(reader)
+	fmt.Println(login.Greet, login.IP, login.Sum)
 }
 ```
 
@@ -44,6 +45,10 @@ If your goal is to make a full GUI desktop client then code under `flow` at best
 ## Tests
 
 The library is thoroughly covered via unit and integration tests. Running the `-short` test suite will result in running the unit tests. The integration suite needs some preparation before it can be used.
+
+Unit suite covers all connection types' serialization/deserialization functions and internal packages.
+
+The `flow` package contains the integration test suite.
 
 ### Unit
 

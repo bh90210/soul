@@ -39,10 +39,10 @@ func TestMessageRead(t *testing.T) {
 
 		}()
 
-		r, size, code, err := MessageRead(soul.PeerInitCode(0), client)
+		r, size, code, err := MessageRead(soul.CodePeerInit(0), client)
 		assert.NoError(t, err)
 		assert.Equal(t, 5, size)
-		assert.Equal(t, soul.PeerInitCode(0), code)
+		assert.Equal(t, soul.CodePeerInit(0), code)
 
 		s, err := ReadUint32(r) // Size.
 		assert.NoError(t, err)
@@ -83,10 +83,10 @@ func TestMessageRead(t *testing.T) {
 			assert.Equal(t, 12, n)
 		}()
 
-		r, size, code, err := MessageRead(soul.ServerCode(0), client)
+		r, size, code, err := MessageRead(soul.CodeServer(0), client)
 		assert.NoError(t, err)
 		assert.Equal(t, 8, size)
-		assert.Equal(t, soul.ServerCode(0), code)
+		assert.Equal(t, soul.CodeServer(0), code)
 
 		s, err := ReadUint32(r) // Size.
 		assert.NoError(t, err)

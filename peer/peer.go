@@ -2,48 +2,76 @@
 // Only a single active connection to a peer is allowed.
 package peer
 
-import "errors"
+//go:generate stringer -type CodeInit,Code -trimprefix Code
+//go:generate stringer -type UploadPermission -trimprefix Permission
+//go:generate stringer -type FileAttributeType -trimprefix Attribute
+//go:generate stringer -type TransferDirection -trimprefix Direction
+
+import (
+	"errors"
+
+	"github.com/bh90210/soul"
+)
+
+// ConnectionType represents the type of peer 'P' connection.
+const ConnectionType soul.ConnectionType = "P"
+
+// CodeInit Peer init messages are used to initiate a P, F or D connection (TCP) to a peer.
+type CodeInit soul.CodePeerInit
+
+const (
+	CodePierceFirewall CodeInit = 0
+	CodePeerInit
+)
+
+// Code Peer messages are sent to peers over a P connection (TCP).
+// Only a single active connection to a peer is allowed.
+type Code soul.CodePeer
+
+const (
+	CodeSharedFileListResponse Code = 5
+)
 
 // UploadPermission represents the permission level for uploading files.
 type UploadPermission int
 
 const (
-	// NoOne permission level.
-	NoOne UploadPermission = iota
-	// Everyone permission level.
-	Everyone
-	// UsersInList permission level.
-	UsersInList
-	// PermittedUsers permission level.
-	PermittedUsers
+	// PermissionNoOne permission level.
+	PermissionNoOne UploadPermission = iota
+	// PermissionEveryone permission level.
+	PermissionEveryone
+	// PermissionUsersInList permission level.
+	PermissionUsersInList
+	// PermissionPermittedUsers permission level.
+	PermissionPermittedUsers
 )
 
 // FileAttributeType represents the type of file attribute.
 type FileAttributeType int
 
 const (
-	// Bitrate (kbps).
-	Bitrate FileAttributeType = iota
-	// Duration (seconds).
-	Duration
-	// VBR (0 or 1).
-	VBR
+	// AttributeBitrate (kbps).
+	AttributeBitrate FileAttributeType = iota
+	// AttributeDuration (seconds).
+	AttributeDuration
+	// AttributeVBR (0 or 1).
+	AttributeVBR
 	// Encoder (unused). See https://nicotine-plus.org/doc/SLSKPROTOCOL.html#file-attribute-types.
 	_
-	// SampleRate (Hz).
-	SampleRate
-	// BitDepth (bits).
-	BitDepth
+	// AttributeSampleRate (Hz).
+	AttributeSampleRate
+	// AttributeBitDepth (bits).
+	AttributeBitDepth
 )
 
 // TransferDirection represents the direction of a file transfer.
 type TransferDirection int
 
 const (
-	// DownloadFromPeer transfer direction.
-	DownloadFromPeer TransferDirection = iota
-	// UploadToPeer transfer direction.
-	UploadToPeer
+	// DirectionDownloadFromPeer transfer direction.
+	DirectionDownloadFromPeer TransferDirection = iota
+	// DirectionUploadToPeer transfer direction.
+	DirectionUploadToPeer
 )
 
 var ErrBanned = errors.New("Banned")

@@ -16,7 +16,7 @@ type Client struct {
 	Config *Config
 
 	conn   net.Conn
-	m      map[soul.ServerCode][]io.Reader
+	m      map[soul.CodeServer][]io.Reader
 	mu     sync.Mutex
 	search map[soul.Token][]SearchResult
 }
@@ -27,7 +27,7 @@ func (s *Client) Dial() (err error) {
 		return
 	}
 
-	s.m = make(map[soul.ServerCode][]io.Reader)
+	s.m = make(map[soul.CodeServer][]io.Reader)
 	s.search = make(map[soul.Token][]SearchResult)
 
 	return
@@ -37,7 +37,7 @@ func (c *Client) Close() {
 	c.conn.Close()
 }
 
-func (c *Client) NextMessage() (soul.ServerCode, error) {
+func (c *Client) NextMessage() (soul.CodeServer, error) {
 	r, _, code, err := server.MessageRead(c.conn)
 	if err != nil {
 		return 0, err

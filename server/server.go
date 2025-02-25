@@ -2,6 +2,9 @@
 // over a connection (TCP).
 package server
 
+//go:generate stringer -type Code -trimprefix Code
+//go:generate stringer -type UserStatus -trimprefix UserStatus
+
 import (
 	"io"
 	"net"
@@ -10,36 +13,39 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
+// ConnectionType represents the type of server 'S' connection.
+const ConnectionType soul.ConnectionType = "S"
+
 // UserStatus represents the status of a user.
 type UserStatus int
 
 const (
-	// Offline user status.
-	Offline UserStatus = iota
-	// Away user status.
-	Away
-	// Online user status.
-	Online
+	// StatusOffline user status.
+	StatusOffline UserStatus = iota
+	// StatusAway user status.
+	StatusAway
+	// StatusOnline user status.
+	StatusOnline
 )
 
-func (u UserStatus) String() string {
-	switch u {
-	case Offline:
-		return "offline"
-	case Away:
-		return "away"
-	case Online:
-		return "online"
+// Code represents the type of server message.
+type Code soul.CodeServer
 
-	default:
-		return "unknown"
-	}
+const (
+	CodeLogin Code = 1
+	CodeLoginFailed
+)
+
+// MessageRead reads a message from a server connection. It reads the size of the message
+// and the code of the message. It then reads the message from the connection and
+// returns the message, the size of the message, the code of the message and an error.
+func MessageRead(connection net.Conn) (io.Reader, int, soul.CodeServer, error) {
+	return internal.MessageRead(soul.CodeServer(0), connection)
 }
 
-func MessageRead(connection net.Conn) (io.Reader, int, soul.ServerCode, error) {
-	return internal.MessageRead(soul.ServerCode(0), connection)
-}
-
+// MessageWrite writes a message to a server connection. It writes the size of the message
+// and the code of the message. It then writes the message to the connection and returns
+// the number of bytes written and an error.
 func MessageWrite(connection net.Conn, message []byte) (int, error) {
 	return internal.MessageWrite(connection, message)
 }

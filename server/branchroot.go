@@ -7,7 +7,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const BranchRootCode soul.ServerCode = 127
+const BranchRootCode soul.CodeServer = 127
 
 type BranchRoot struct{}
 

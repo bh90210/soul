@@ -27,7 +27,7 @@ func TestAcceptChildren(t *testing.T) {
 
 	code, err := internal.ReadUint32(buf) // code 66
 	assert.NoError(t, err)
-	assert.Equal(t, AcceptChildrenCode, soul.ServerCode(code))
+	assert.Equal(t, AcceptChildrenCode, soul.CodeServer(code))
 
 	m, err := internal.ReadBool(buf)
 	assert.NoError(t, err)

@@ -9,7 +9,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const ResetDistributedCode soul.ServerCode = 130
+const ResetDistributedCode soul.CodeServer = 130
 
 type ResetDistributed struct{}
 

@@ -15,7 +15,7 @@ import (
 )
 
 // LoginCode 1.
-const LoginCode soul.ServerCode = 1
+const LoginCode soul.CodeServer = 1
 
 // Login is the message we get from the server when trying to login.
 // It can either be a success or a failure.

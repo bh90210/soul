@@ -12,8 +12,6 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const SharedFileListResponseCode soul.PeerCode = 5
-
 type SharedFileListResponse struct {
 	Directories        []Directory
 	PrivateDirectories []Directory
@@ -38,7 +36,7 @@ type Attribute struct {
 
 func (s SharedFileListResponse) Serialize(directories, privateDirectories []Directory) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := internal.WriteUint32(buf, uint32(SharedFileListResponseCode))
+	err := internal.WriteUint32(buf, uint32(CodeSharedFileListResponse))
 	if err != nil {
 		return nil, err
 	}
@@ -115,9 +113,9 @@ func (s *SharedFileListResponse) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	if code != uint32(SharedFileListResponseCode) {
+	if code != uint32(CodeSharedFileListResponse) {
 		return errors.Join(soul.ErrMismatchingCodes,
-			fmt.Errorf("expected code %d, got %d", SharedFileListResponseCode, code))
+			fmt.Errorf("expected code %d, got %d", CodeSharedFileListResponse, code))
 	}
 
 	gzr, err := gzip.NewReader(reader)

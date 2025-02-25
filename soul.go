@@ -16,34 +16,25 @@ const (
 // ConnectionType represents the type of connection.
 type ConnectionType string
 
-const (
-	// Peer connection type: Peer To Peer.
-	Peer ConnectionType = "P"
-	// File connection type: File Transfer.
-	File ConnectionType = "F"
-	// Distributed connection type: Distributed Network.
-	Distributed ConnectionType = "D"
-)
-
 // ErrMismatchingCodes is returned when the code read from the stream does not match the expected of the consumer.
 var ErrMismatchingCodes = errors.New("mismatching codes")
 
 // ErrDifferentPacketSize is returned when the declared size of the package does not match the size of the actual read.
 var ErrDifferentPacketSize = errors.New("the declared size of the package does not match the size of the actual read")
 
-// ServerCode messages are used by clients to interface with the server over a connection (TCP).
-type ServerCode int
+// CodeServer messages are used by clients to interface with the server over a connection (TCP).
+type CodeServer int
 
-// PeerInitCode This message is sent to initiate a direct connection to another peer.
-type PeerInitCode int
+// CodePeerInit This message is sent to initiate a direct connection to another peer.
+type CodePeerInit int
 
-// PeerCode messages are sent to peers over a P connection (TCP). Only a single
+// CodePeer messages are sent to peers over a P connection (TCP). Only a single
 // active connection to a peer is allowed.
-type PeerCode int
+type CodePeer int
 
-// DistributedCode messages are sent to peers over a D connection (TCP), and are used
+// CodeDistributed messages are sent to peers over a D connection (TCP), and are used
 // for the distributed search network. Only a single active connection to a peer is allowed.
-type DistributedCode int
+type CodeDistributed int
 
 // Token is a unique identifier of type uint32 that is used throughout the protocol.
 type Token uint32

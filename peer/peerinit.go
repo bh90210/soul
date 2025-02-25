@@ -10,8 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const PeerInitCode soul.PeerInitCode = 1
-
+// PeerInitCode code 1.
 type PeerInit struct {
 	RemoteUsername string
 	ConnectionType soul.ConnectionType
@@ -19,7 +18,7 @@ type PeerInit struct {
 
 func (p PeerInit) Serialize(ownUsername string, connType soul.ConnectionType) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := internal.WriteUint8(buf, uint8(PeerInitCode))
+	err := internal.WriteUint8(buf, uint8(CodePeerInit))
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +52,9 @@ func (p *PeerInit) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	if code != uint8(PeerInitCode) {
+	if code != uint8(CodePeerInit) {
 		return errors.Join(soul.ErrMismatchingCodes,
-			fmt.Errorf("expected code %d, got %d", PeerInitCode, code))
+			fmt.Errorf("expected code %d, got %d", CodePeerInit, code))
 	}
 
 	p.RemoteUsername, err = internal.ReadString(reader)

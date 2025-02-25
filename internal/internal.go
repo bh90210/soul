@@ -14,7 +14,7 @@ import (
 // It is used in the MessageRead function to determine the type of the message
 // that is being read from the connection.
 type Code interface {
-	soul.ServerCode | soul.PeerInitCode | soul.PeerCode | soul.DistributedCode
+	soul.CodeServer | soul.CodePeerInit | soul.CodePeer | soul.CodeDistributed
 }
 
 // MessageRead reads a message from the connection. It reads the size of the message
@@ -39,7 +39,7 @@ func MessageRead[C Code](c C, connection net.Conn) (io.Reader, int, C, error) {
 	var code C
 	var readAlready int
 	switch any(c).(type) {
-	case soul.PeerInitCode, soul.DistributedCode:
+	case soul.CodePeerInit, soul.CodeDistributed:
 		c, err := ReadUint8(messageHeader)
 		if err != nil {
 			return nil, 0, 0, err
@@ -49,7 +49,7 @@ func MessageRead[C Code](c C, connection net.Conn) (io.Reader, int, C, error) {
 
 		readAlready = 1
 
-	case soul.ServerCode, soul.PeerCode:
+	case soul.CodeServer, soul.CodePeer:
 		c, err := ReadUint32(messageHeader)
 		if err != nil {
 			return nil, 0, 0, err

@@ -10,7 +10,7 @@ import (
 )
 
 // RoomListCode RoomList.
-const RoomListCode soul.ServerCode = 64
+const RoomListCode soul.CodeServer = 64
 
 type RoomList struct {
 	Rooms []Room

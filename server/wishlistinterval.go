@@ -10,7 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const WishlistIntervalCode soul.ServerCode = 104
+const WishlistIntervalCode soul.CodeServer = 104
 
 type WishlistInterval struct {
 	Interval int

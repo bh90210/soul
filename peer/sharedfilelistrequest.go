@@ -10,7 +10,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const SharedFileListRequestCode soul.PeerCode = 4
+const SharedFileListRequestCode soul.CodePeer = 4
 
 type SharedFileListRequest struct{}
 

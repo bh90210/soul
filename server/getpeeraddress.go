@@ -12,7 +12,7 @@ import (
 )
 
 // Code GetPeerAddress.
-const GetPeerAddressCode soul.ServerCode = 3
+const GetPeerAddressCode soul.CodeServer = 3
 
 // Response is the message we get from the server when trying to get a peer's address.
 type GetPeerAddress struct {

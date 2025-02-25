@@ -7,7 +7,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const MessageUsersCode soul.ServerCode = 149
+const MessageUsersCode soul.CodeServer = 149
 
 type MessageUsers struct{}
 

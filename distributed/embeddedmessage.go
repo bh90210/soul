@@ -10,21 +10,18 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-// EmbeddedMessageCode 93.
-const EmbeddedMessageCode soul.DistributedCode = 93
-
-// EmbeddedMessage a branch root sends us an embedded distributed message. We unpack the
+// EmbeddedMessage code 93 a branch root sends us an embedded distributed message. We unpack the
 // distributed message and distribute it to our child peers. The only type of distributed
 // message sent at present is DistribSearch (distributed code 3).
 type EmbeddedMessage struct {
-	Code    soul.DistributedCode
+	Code    soul.CodeDistributed
 	Message []byte
 }
 
 // Serialize accepts a code and message and returns a message packed as a byte slice.
-func (d EmbeddedMessage) Serialize(code soul.DistributedCode, message []byte) ([]byte, error) {
+func (d EmbeddedMessage) Serialize(code soul.CodeDistributed, message []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := internal.WriteUint8(buf, uint8(EmbeddedMessageCode))
+	err := internal.WriteUint8(buf, uint8(CodeEmbeddedMessage))
 	if err != nil {
 		return nil, err
 	}
@@ -54,9 +51,9 @@ func (d *EmbeddedMessage) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	if code != uint8(EmbeddedMessageCode) {
+	if code != uint8(CodeEmbeddedMessage) {
 		return errors.Join(soul.ErrMismatchingCodes,
-			fmt.Errorf("expected code %d, got %d", EmbeddedMessageCode, code))
+			fmt.Errorf("expected code %d, got %d", CodeEmbeddedMessage, code))
 	}
 
 	code, err = internal.ReadUint8(reader)
@@ -64,7 +61,7 @@ func (d *EmbeddedMessage) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	d.Code = soul.DistributedCode(code)
+	d.Code = soul.CodeDistributed(code)
 
 	d.Message, err = internal.ReadBytes(reader)
 	if err != nil {

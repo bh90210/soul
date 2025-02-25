@@ -7,7 +7,7 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-const UserSearchCode soul.ServerCode = 42
+const UserSearchCode soul.CodeServer = 42
 
 type UserSearch struct{}
 
