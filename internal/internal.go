@@ -183,7 +183,7 @@ func ReadUint32ToToken(buf io.Reader) (soul.Token, error) {
 		return 0, err
 	}
 
-	return soul.NewTokenFrom(v)
+	return soul.Token(v), nil
 }
 
 // ReadUint64 reads a uint64 value from the buffer.

@@ -14,10 +14,10 @@ import (
 	"github.com/bh90210/soul/internal"
 )
 
-// Code Login.
+// LoginCode 1.
 const LoginCode soul.ServerCode = 1
 
-// Response is the message we get from the server when trying to login.
+// Login is the message we get from the server when trying to login.
 // It can either be a success or a failure.
 type Login struct {
 	Greet string
@@ -111,19 +111,19 @@ func (l *Login) Deserialize(reader io.Reader) error {
 		}
 
 		switch errMessage {
-		case "INVALIDUSERNAME":
-			return ErrInvalidUsername
+		case ErrInvalidUsername.Error():
+			return errors.Join(err, ErrInvalidUsername)
 
-		case "INVALIDPASS":
-			return ErrInvalidPass
+		case ErrInvalidPass.Error():
+			return errors.Join(err, ErrInvalidPass)
 
-		case "INVALIDVERSION":
-			return ErrInvalidVersion
+		case ErrInvalidVersion.Error():
+			return errors.Join(err, ErrInvalidVersion)
 		}
 
 		// This is not suppose to happen thus we are not
 		// dedicating a new var Err for it.
-		return fmt.Errorf("unknown login failure: %s", errMessage)
+		return errors.Join(err, fmt.Errorf("unknown login failure: %s", errMessage))
 	}
 
 	l.Greet, err = internal.ReadString(reader)
@@ -139,7 +139,11 @@ func (l *Login) Deserialize(reader io.Reader) error {
 	l.IP = internal.ReadIP(ip)
 
 	l.Sum, err = internal.ReadString(reader)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func sum(username string, password string) ([]byte, error) {

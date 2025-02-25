@@ -157,8 +157,8 @@ func (s *SharedFileListResponse) Deserialize(reader io.Reader) error {
 	return nil
 }
 
-func (s SharedFileListResponse) walkRead(numberOfDirectories uint32, gzr *gzip.Reader) ([]Directory, error) {
-	var directories []Directory
+func (s SharedFileListResponse) walkRead(numberOfDirectories uint32, gzr *gzip.Reader) (directories []Directory, err error) {
+	// var directories []Directory
 
 	for i := 0; i < int(numberOfDirectories); i++ {
 		var directory Directory
@@ -198,7 +198,7 @@ func (s SharedFileListResponse) walkRead(numberOfDirectories uint32, gzr *gzip.R
 			}
 
 			attributes, err := internal.ReadUint32(gzr)
-			if err != nil {
+			if err != nil && !errors.Is(err, io.EOF) {
 				return nil, err
 			}
 
@@ -213,7 +213,7 @@ func (s SharedFileListResponse) walkRead(numberOfDirectories uint32, gzr *gzip.R
 				a.Code = FileAttributeType(code)
 
 				a.Value, err = internal.ReadUint32ToInt(gzr)
-				if err != nil {
+				if err != nil && !errors.Is(err, io.EOF) {
 					return nil, err
 				}
 
@@ -226,5 +226,5 @@ func (s SharedFileListResponse) walkRead(numberOfDirectories uint32, gzr *gzip.R
 		directories = append(directories, directory)
 	}
 
-	return directories, nil
+	return directories, err
 }

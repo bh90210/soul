@@ -15,15 +15,15 @@ type PrivilegedUsers struct {
 	Users []string
 }
 
-func (p *PrivilegedUsers) Deserialize(reader io.Reader) error {
-	_, err := internal.ReadUint32(reader) // size
+func (p *PrivilegedUsers) Deserialize(reader io.Reader) (err error) {
+	_, err = internal.ReadUint32(reader) // size
 	if err != nil {
-		return err
+		return
 	}
 
 	code, err := internal.ReadUint32(reader) // code 69
 	if err != nil {
-		return err
+		return
 	}
 
 	if code != uint32(PrivilegedUsersCode) {
@@ -33,17 +33,18 @@ func (p *PrivilegedUsers) Deserialize(reader io.Reader) error {
 
 	numberOfUsers, err := internal.ReadUint32(reader)
 	if err != nil {
-		return err
+		return
 	}
 
 	for i := 0; i < int(numberOfUsers); i++ {
-		user, err := internal.ReadString(reader)
+		var user string
+		user, err = internal.ReadString(reader)
 		if err != nil && !errors.Is(err, io.EOF) {
-			return err
+			return
 		}
 
 		p.Users = append(p.Users, user)
 	}
 
-	return io.EOF
+	return
 }

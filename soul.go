@@ -3,7 +3,6 @@ package soul
 
 import (
 	"errors"
-	"math"
 	"math/rand/v2"
 )
 
@@ -46,36 +45,11 @@ type PeerCode int
 // for the distributed search network. Only a single active connection to a peer is allowed.
 type DistributedCode int
 
-// Token is a unique identifier used throughout the protocol.
+// Token is a unique identifier of type uint32 that is used throughout the protocol.
 type Token uint32
 
-// NewToken returns a new token and run t.Gen() on it before returning.
-// It uses math/rand/v2 to generate the random uint32 token.
+// NewToken returns a new randomly generated uint32 long token.
+// Under the hood, it uses math/rand/v2.Uint32().
 func NewToken() Token {
-	t, _ := NewTokenFrom(rand.Uint32())
-	return t
-}
-
-// ErrTokenNegative is returned when the token is negative.
-var ErrTokenNegative = errors.New("token cannot be negative")
-
-// ErrTokenTooLarge is returned when the token is greater than uint32.
-var ErrTokenTooLarge = errors.New("token cannot be greater than uint32 (4294967295)")
-
-type integer interface {
-	int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64
-}
-
-// NewTokenFrom returns a new token from the given integer (int, int8, uin32, etc..)
-// It returns an error if the integer is negative or greater than uint32.
-func NewTokenFrom[I integer](i I) (Token, error) {
-	if i < 0 {
-		return 0, ErrTokenNegative
-	}
-
-	if any(i).(int) > math.MaxUint32 {
-		return 0, ErrTokenTooLarge
-	}
-
-	return Token(i), nil
+	return Token(rand.Uint32())
 }
