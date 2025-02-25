@@ -83,6 +83,13 @@ var ErrInvalidVersion = errors.New("INVALIDVERSION")
 // It returns a Response struct containing either a Success or a Failure.
 // Consumers of Deserialize must check if the response is OK before proceeding
 // as contents f Response are pointers and can be nil.
+// If the response is a failure, the consumer must check the error message.
+// The error message can be one of the following:
+// - ErrInvalidUsername
+// - ErrInvalidPass
+// - ErrInvalidVersion
+// If the error message is not one of the above, it is an unknown error.
+// You can use the custom err variables to check for specific errors in your code.
 func (l *Login) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

@@ -3,6 +3,7 @@ package internal
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
 	"net"
 	"sync"
 	"testing"
@@ -142,14 +143,23 @@ func TestPack(t *testing.T) {
 func TestReadUint8(t *testing.T) {
 	t.Parallel()
 
-	buf := new(bytes.Buffer)
-	err := buf.WriteByte(1)
-	assert.NoError(t, err)
-	expected := uint8(1)
+	t.Run("EOF", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		_, err := ReadUint8(buf)
+		assert.ErrorIs(t, err, io.EOF)
+	})
 
-	actual, err := ReadUint8(buf)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, actual)
+	t.Run("Success", func(t *testing.T) {
+		buf := new(bytes.Buffer)
+		err := buf.WriteByte(1)
+		assert.NoError(t, err)
+		expected := uint8(1)
+
+		actual, err := ReadUint8(buf)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+	})
+
 }
 
 func TestWriteUint8(t *testing.T) {

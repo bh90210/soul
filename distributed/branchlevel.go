@@ -19,7 +19,7 @@ type BranchLevel struct {
 }
 
 // Serialize accepts a branch level and returns a message packed as a byte slice.
-func (d BranchLevel) Serialize(branchLevel int32) ([]byte, error) {
+func (BranchLevel) Serialize(branchLevel int32) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodeBranchLevel))
 	if err != nil {
@@ -35,7 +35,7 @@ func (d BranchLevel) Serialize(branchLevel int32) ([]byte, error) {
 }
 
 // Deserialize accepts a reader and deserializes the message into the BranchLevel struct.
-func (d *BranchLevel) Deserialize(reader io.Reader) error {
+func (b *BranchLevel) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func (d *BranchLevel) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", CodeBranchLevel, code))
 	}
 
-	d.Level, err = internal.ReadInt32(reader)
+	b.Level, err = internal.ReadInt32(reader)
 	if err != nil {
 		return err
 	}

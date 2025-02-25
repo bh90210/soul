@@ -16,7 +16,7 @@ type ChangePassword struct {
 	Pass string
 }
 
-func (c ChangePassword) Serialize(pass string) ([]byte, error) {
+func (ChangePassword) Serialize(pass string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(ChangePasswordCode))
 	if err != nil {

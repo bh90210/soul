@@ -11,7 +11,7 @@ const BranchLevelCode soul.CodeServer = 126
 
 type BranchLevel struct{}
 
-func (b BranchLevel) Serialize(level int) ([]byte, error) {
+func (BranchLevel) Serialize(level int) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(BranchLevelCode))
 	if err != nil {

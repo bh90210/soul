@@ -16,8 +16,8 @@ type ExcludedSearchPhrases struct {
 	Phrases []string
 }
 
-func (e *ExcludedSearchPhrases) Deserialize(reader io.Reader) (err error) {
-	_, err = internal.ReadUint32(reader) // size
+func (e *ExcludedSearchPhrases) Deserialize(reader io.Reader) error {
+	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
 	}
@@ -46,5 +46,5 @@ func (e *ExcludedSearchPhrases) Deserialize(reader io.Reader) (err error) {
 		e.Phrases = append(e.Phrases, phrase)
 	}
 
-	return
+	return err
 }

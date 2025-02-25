@@ -19,7 +19,7 @@ type Search struct {
 }
 
 // Serialize accepts a token, username, and query and returns a message packed as a byte slice.
-func (d Search) Serialize(token soul.Token, username, query string) ([]byte, error) {
+func (Search) Serialize(token soul.Token, username, query string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodeSearch))
 	if err != nil {
@@ -50,7 +50,7 @@ func (d Search) Serialize(token soul.Token, username, query string) ([]byte, err
 }
 
 // Deserialize accepts a reader and deserializes the message into the Search struct.
-func (d *Search) Deserialize(reader io.Reader) error {
+func (s *Search) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
@@ -71,17 +71,17 @@ func (d *Search) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	d.Username, err = internal.ReadString(reader)
+	s.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
 
-	d.Token, err = internal.ReadUint32ToToken(reader)
+	s.Token, err = internal.ReadUint32ToToken(reader)
 	if err != nil {
 		return err
 	}
 
-	d.Query, err = internal.ReadString(reader)
+	s.Query, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

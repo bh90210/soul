@@ -17,7 +17,7 @@ type CantConnectToPeer struct {
 	Username string
 }
 
-func (c CantConnectToPeer) Serialize(token soul.Token, username string) ([]byte, error) {
+func (CantConnectToPeer) Serialize(token soul.Token, username string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CantConnectToPeerCode))
 	if err != nil {

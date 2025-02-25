@@ -16,7 +16,7 @@ type PeerInit struct {
 	ConnectionType soul.ConnectionType
 }
 
-func (p PeerInit) Serialize(ownUsername string, connType soul.ConnectionType) ([]byte, error) {
+func (PeerInit) Serialize(ownUsername string, connType soul.ConnectionType) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodePeerInit))
 	if err != nil {

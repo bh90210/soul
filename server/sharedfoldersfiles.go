@@ -11,7 +11,8 @@ const SharedFoldersFilesCode soul.CodeServer = 35
 
 type SharedFoldersFiles struct{}
 
-func (s SharedFoldersFiles) Serialize(directories, files int) ([]byte, error) {
+// Serialize accepts the number of directories and files and returns a serialized byte array.
+func (SharedFoldersFiles) Serialize(directories, files int) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(SharedFoldersFilesCode))
 	if err != nil {

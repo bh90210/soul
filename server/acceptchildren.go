@@ -11,7 +11,7 @@ const AcceptChildrenCode soul.CodeServer = 100
 
 type AcceptChildren struct{}
 
-func (a AcceptChildren) Serialize(accept bool) ([]byte, error) {
+func (AcceptChildren) Serialize(accept bool) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(AcceptChildrenCode))
 	if err != nil {

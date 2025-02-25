@@ -38,7 +38,7 @@ case server.LoginCode:
 
 ## Flow
 
-To successfully make use of the network, you will need certain procedures involving multiple types of connections at once. Under `flow` package you will find the most common actions a client will probably make (login, search, download, upload.) If like me your goal is to make a CLI, preferably one that will run on a server rather than a desktop and used as a library inside other Go software, then client code in the `flow` package can be potentially useful as is, albeit incomplete (no private messages, not chat rooms, no file indexing/handling, no local storage etc.)
+To successfully make use of the network, you will need certain procedures involving multiple types of connections at once. Under `flow` package you will find the most common actions a client will probably make (login, search, download, upload.) If like me your goal is to make a CLI, preferably one that will run on a server rather than a desktop and used as a library inside other Go software, then client code in the `flow` package can be potentially useful as is, albeit incomplete (no private messages, not chat rooms, no file indexing/handling, no database etc.)
 
 If your goal is to make a full GUI desktop client then code under `flow` can server as a guide but you will probably want to write your own message handling system with an appropriate data storage solution and custom logic covering your particular needs.
 
@@ -46,7 +46,7 @@ If your goal is to make a full GUI desktop client then code under `flow` can ser
 
 The library is thoroughly covered via unit and integration tests. Running the `-short` test suite will result in running the unit tests. The integration suite needs some preparation before it can be used.
 
-Unit suite covers all connection types' serialization/deserialization functions and internal packages.
+Unit suite covers all connection types' serialization/deserialization and internal packages.
 
 The `flow` package contains the integration test suite.
 

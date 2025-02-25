@@ -15,7 +15,7 @@ type TransferInit struct {
 }
 
 // Serialize accepts a token and returns a message packed as a byte slice.
-func (t TransferInit) Serialize(token soul.Token) ([]byte, error) {
+func (TransferInit) Serialize(token soul.Token) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	err := internal.WriteUint32(buf, uint32(token))
@@ -29,9 +29,5 @@ func (t TransferInit) Serialize(token soul.Token) ([]byte, error) {
 // Deserialize accepts a reader and deserializes the message into the TransferInit struct.
 func (t *TransferInit) Deserialize(reader io.Reader) (err error) {
 	t.Token, err = internal.ReadUint32ToToken(reader)
-	if err != nil {
-		return
-	}
-
 	return
 }

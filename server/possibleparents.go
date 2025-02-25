@@ -59,12 +59,12 @@ func (p *PossibleParents) Deserialize(reader io.Reader) error {
 		parent.IP = internal.ReadIP(ip)
 
 		parent.Port, err = internal.ReadUint32ToInt(reader)
-		if err != nil {
+		if err != nil && !errors.Is(err, io.EOF) {
 			return err
 		}
 
 		p.Parents = append(p.Parents, parent)
 	}
 
-	return nil
+	return err
 }

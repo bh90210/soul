@@ -32,5 +32,9 @@ func (p *ParentMinSpeed) Deserialize(reader io.Reader) error {
 	}
 
 	p.MinSpeed, err = internal.ReadUint32ToInt(reader)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

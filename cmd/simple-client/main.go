@@ -16,7 +16,7 @@ func main() {
 	client := new(flow.Client)
 
 	// Setup the server configuration.
-	username, _ := gonanoid.Generate("abcdefghijklmnopqrstuvwxyz", 12)
+	username, _ := gonanoid.Generate("lmnopqrstuvwxyz", 12)
 	password, _ := gonanoid.Generate("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 12)
 
 	client.Config = &flow.Config{

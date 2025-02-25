@@ -13,9 +13,9 @@ func _() {
 	_ = x[StatusOnline-2]
 }
 
-const _UserStatus_name = "OfflineAwayOnline"
+const _UserStatus_name = "StatusOfflineStatusAwayStatusOnline"
 
-var _UserStatus_index = [...]uint8{0, 7, 11, 17}
+var _UserStatus_index = [...]uint8{0, 13, 23, 35}
 
 func (i UserStatus) String() string {
 	if i < 0 || i >= UserStatus(len(_UserStatus_index)-1) {

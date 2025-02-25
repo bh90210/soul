@@ -19,7 +19,7 @@ type EmbeddedMessage struct {
 }
 
 // Serialize accepts a code and message and returns a message packed as a byte slice.
-func (d EmbeddedMessage) Serialize(code soul.CodeDistributed, message []byte) ([]byte, error) {
+func (EmbeddedMessage) Serialize(code soul.CodeDistributed, message []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodeEmbeddedMessage))
 	if err != nil {
@@ -40,7 +40,7 @@ func (d EmbeddedMessage) Serialize(code soul.CodeDistributed, message []byte) ([
 }
 
 // Deserialize accepts a reader and deserializes the message into the EmbeddedMessage struct.
-func (d *EmbeddedMessage) Deserialize(reader io.Reader) error {
+func (e *EmbeddedMessage) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
@@ -61,9 +61,9 @@ func (d *EmbeddedMessage) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	d.Code = soul.CodeDistributed(code)
+	e.Code = soul.CodeDistributed(code)
 
-	d.Message, err = internal.ReadBytes(reader)
+	e.Message, err = internal.ReadBytes(reader)
 	if err != nil {
 		return err
 	}

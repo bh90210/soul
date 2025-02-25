@@ -15,7 +15,8 @@ type Offset struct {
 }
 
 // Serialize accepts an offset and returns a message packed as a byte slice.
-func (o Offset) Serialize(offset uint64) ([]byte, error) {
+// The offset is the number of bytes of the file that the peer has previously downloaded.
+func (Offset) Serialize(offset uint64) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint64(buf, offset)
 	if err != nil {
@@ -26,11 +27,8 @@ func (o Offset) Serialize(offset uint64) ([]byte, error) {
 }
 
 // Deserialize accepts a reader and deserializes the message into the Offset struct.
+// The offset is the number of bytes of the file that the peer has previously downloaded.
 func (o *Offset) Deserialize(reader io.Reader) (err error) {
 	o.Offset, err = internal.ReadUint64(reader)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return
 }

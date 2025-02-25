@@ -11,7 +11,7 @@ const BranchRootCode soul.CodeServer = 127
 
 type BranchRoot struct{}
 
-func (b BranchRoot) Serialize(root string) ([]byte, error) {
+func (BranchRoot) Serialize(root string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(BranchRootCode))
 	if err != nil {

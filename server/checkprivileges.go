@@ -16,7 +16,7 @@ type CheckPrivileges struct {
 	TimeLeft int
 }
 
-func (c CheckPrivileges) Serialize() ([]byte, error) {
+func (CheckPrivileges) Serialize() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CheckPrivilegesCode))
 	if err != nil {
@@ -43,5 +43,9 @@ func (c *CheckPrivileges) Deserialize(reader io.Reader) error {
 	}
 
 	c.TimeLeft, err = internal.ReadUint32ToInt(reader)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

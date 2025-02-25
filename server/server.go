@@ -16,6 +16,14 @@ import (
 // ConnectionType represents the type of server 'S' connection.
 const ConnectionType soul.ConnectionType = "S"
 
+// Code represents the type of server message.
+type Code soul.CodeServer
+
+const (
+	CodeLogin Code = 1
+	CodeLoginFailed
+)
+
 // UserStatus represents the status of a user.
 type UserStatus int
 
@@ -26,14 +34,6 @@ const (
 	StatusAway
 	// StatusOnline user status.
 	StatusOnline
-)
-
-// Code represents the type of server message.
-type Code soul.CodeServer
-
-const (
-	CodeLogin Code = 1
-	CodeLoginFailed
 )
 
 // MessageRead reads a message from a server connection. It reads the size of the message

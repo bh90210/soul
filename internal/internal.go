@@ -4,6 +4,7 @@ package internal
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 	"net"
 
@@ -112,11 +113,11 @@ func Pack(data []byte) ([]byte, error) {
 func ReadUint8(buf io.Reader) (uint8, error) {
 	var val uint8
 	err := binary.Read(buf, binary.LittleEndian, &val)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return 0, err
 	}
 
-	return val, nil
+	return val, err
 }
 
 // WriteUint8 writes a uint8 value to the buffer.
@@ -128,11 +129,11 @@ func WriteUint8(buf io.Writer, val uint8) error {
 func ReadInt32(buf io.Reader) (int32, error) {
 	var val int32
 	err := binary.Read(buf, binary.LittleEndian, &val)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return 0, err
 	}
 
-	return val, nil
+	return val, err
 }
 
 // WriteInt32 writes an int32 value to the buffer.
@@ -143,22 +144,22 @@ func WriteInt32(buf io.Writer, val int32) error {
 // ReadInt32ToInt reads an int32 value from the buffer and converts it to an int.
 func ReadInt32ToInt(buf io.Reader) (int, error) {
 	val, err := ReadInt32(buf)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return 0, err
 	}
 
-	return int(val), nil
+	return int(val), err
 }
 
 // ReadUint32 reads a uint32 value from the buffer.
 func ReadUint32(buf io.Reader) (uint32, error) {
 	var val uint32
 	err := binary.Read(buf, binary.LittleEndian, &val)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return 0, err
 	}
 
-	return val, nil
+	return val, err
 }
 
 // WriteUint32 writes a uint32 value to the buffer.
@@ -169,32 +170,32 @@ func WriteUint32(buf io.Writer, val uint32) error {
 // ReadUint32ToInt reads a uint32 value from the buffer and converts it to an int.
 func ReadUint32ToInt(buf io.Reader) (int, error) {
 	v, err := ReadUint32(buf)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return 0, err
 	}
 
-	return int(v), nil
+	return int(v), err
 }
 
 // ReadUint32ToToken reads a uint32 value from the buffer and converts it to a Token.
 func ReadUint32ToToken(buf io.Reader) (soul.Token, error) {
 	v, err := ReadUint32(buf)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return 0, err
 	}
 
-	return soul.Token(v), nil
+	return soul.Token(v), err
 }
 
 // ReadUint64 reads a uint64 value from the buffer.
 func ReadUint64(reader io.Reader) (uint64, error) {
 	var val uint64
 	err := binary.Read(reader, binary.LittleEndian, &val)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return 0, err
 	}
 
-	return val, nil
+	return val, err
 }
 
 // WriteUint64 writes a uint64 value to the buffer.
@@ -205,11 +206,11 @@ func WriteUint64(buf io.Writer, val uint64) error {
 // ReadUint64ToInt reads a uint64 value from the buffer and converts it to an int.
 func ReadUint64ToInt(buf io.Reader) (int, error) {
 	val, err := ReadUint64(buf)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return 0, err
 	}
 
-	return int(val), nil
+	return int(val), err
 }
 
 // NewString creates a byte slice from a string.
@@ -232,11 +233,11 @@ func ReadString(reader io.Reader) (string, error) {
 
 	buf := make([]byte, size)
 	_, err = io.ReadFull(reader, buf)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return "", err
 	}
 
-	return string(buf), nil
+	return string(buf), err
 }
 
 // WriteString writes a string to the buffer.
@@ -259,11 +260,11 @@ func ReadBool(reader io.Reader) (bool, error) {
 	var val uint8
 
 	err := binary.Read(reader, binary.LittleEndian, &val)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return false, err
 	}
 
-	return val == 1, nil
+	return val == 1, err
 }
 
 // WriteBool writes a bool value to the buffer.
@@ -277,19 +278,19 @@ func WriteBool(buf io.Writer, val bool) error {
 }
 
 // ReadBytes reads a byte slice from the buffer.
-func ReadBytes(reader io.Reader) ([]byte, error) {
+func ReadBytes(reader io.Reader) (buf []byte, err error) {
 	size, err := ReadUint32(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	buf := make([]byte, size)
+	buf = make([]byte, size)
 	_, err = io.ReadFull(reader, buf)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 
-	return buf, nil
+	return buf, err
 }
 
 // WriteBytes writes a byte slice to the buffer.

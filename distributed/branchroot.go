@@ -18,7 +18,7 @@ type BranchRoot struct {
 }
 
 // Serialize accepts a root and returns a message packed as a byte slice.
-func (d BranchRoot) Serialize(root string) ([]byte, error) {
+func (BranchRoot) Serialize(root string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodeBranchRoot))
 	if err != nil {
@@ -34,7 +34,7 @@ func (d BranchRoot) Serialize(root string) ([]byte, error) {
 }
 
 // Deserialize accepts a reader and deserializes the message into the BranchRoot struct.
-func (d *BranchRoot) Deserialize(reader io.Reader) error {
+func (b *BranchRoot) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (d *BranchRoot) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", CodeBranchRoot, code))
 	}
 
-	d.Root, err = internal.ReadString(reader)
+	b.Root, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

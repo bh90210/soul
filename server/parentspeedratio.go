@@ -32,5 +32,9 @@ func (p *ParentSpeedRatio) Deserialize(reader io.Reader) error {
 	}
 
 	p.SpeedRatio, err = internal.ReadUint32ToInt(reader)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
