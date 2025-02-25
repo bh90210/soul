@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/bh90210/soul"
-	"github.com/bh90210/soul/flow"
+	"github.com/bh90210/soul/internal/flow"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
