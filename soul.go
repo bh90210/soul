@@ -13,7 +13,7 @@ const (
 	VersionMinor uint32 = 0
 )
 
-// ConnectionType represents the type of connection.
+// ConnectionType represents the type of connection. Possible values are "P", "F", "D" and "S".
 type ConnectionType string
 
 // ErrMismatchingCodes is returned when the code read from the stream does not match the expected of the consumer.

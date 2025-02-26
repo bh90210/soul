@@ -23,11 +23,10 @@ func main() {
 		Username:        username,
 		Password:        password,
 		SoulseekAddress: "server.slsknet.org",
-		// SoulseekAddress: "localhost", // Local dev.
-		SoulseekPort:  2242,
-		SharedFolders: 1,
-		SharedFiles:   1,
-		LogLevel:      zerolog.DebugLevel,
+		SoulseekPort:    2242,
+		SharedFolders:   1,
+		SharedFiles:     1,
+		LogLevel:        zerolog.DebugLevel,
 	}
 
 	// Setup logger.
@@ -62,8 +61,6 @@ func main() {
 
 	// When connected, start pinging the server.
 	go client.Ping()
-
-	time.Sleep(2 * time.Second)
 
 	token := soul.NewToken()
 

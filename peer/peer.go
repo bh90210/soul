@@ -10,8 +10,11 @@ package peer
 
 import (
 	"errors"
+	"io"
+	"net"
 
 	"github.com/bh90210/soul"
+	"github.com/bh90210/soul/internal"
 )
 
 // ConnectionType represents the type of peer 'P' connection.
@@ -139,4 +142,12 @@ func reason(reason string) error {
 	default:
 		return errors.New(reason)
 	}
+}
+
+func MessageRead(connection net.Conn) (io.Reader, int, soul.CodePeer, error) {
+	return internal.MessageRead(soul.CodePeer(0), connection)
+}
+
+func MessageWrite(connection net.Conn, message []byte) (int, error) {
+	return internal.MessageWrite(connection, message)
 }

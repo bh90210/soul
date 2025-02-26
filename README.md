@@ -55,7 +55,7 @@ The `flow` package contains the integration test suite.
 Unit tests can make use of the `-race` and `-parallel` flags.
 
 ```bash
-go test -short -race -count 10 -parallel 10 --cover -covermode=atomic -coverpkg=./... ./... -coverprofile=coverage.txt
+go test -short -race -count 10 -parallel 10 --cover -covermode=atomic -coverpkg=./... ./...
 ```
 
 ### Integration
