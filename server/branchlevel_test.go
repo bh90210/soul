@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Testbranchlevel(t *testing.T) {
+func TestBranchLevel(t *testing.T) {
 	t.Parallel()
 
 	branchLevel := new(BranchLevel)
