@@ -3,9 +3,9 @@ package client
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -14,6 +14,7 @@ import (
 	"github.com/bh90210/soul/file"
 	"github.com/bh90210/soul/peer"
 	"github.com/bh90210/soul/server"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/teivah/broadcast"
 )
@@ -52,6 +53,8 @@ type Peer struct {
 
 	initListeners            *peerInitListeners
 	initDistributedListeners *distributedInitListeners
+
+	zerolog.Logger
 }
 
 // NewPeer creates a new peer.
@@ -64,6 +67,9 @@ func NewPeer(config *Config, message *peer.PeerInit, conn net.Conn) *Peer {
 		queue:     make(chan map[peer.Code]io.Reader),
 		queueD:    make(chan map[distributed.Code]io.Reader),
 	}
+
+	p.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	p.Logger = p.Logger.With().Str("username", p.username).Logger()
 
 	p.relayInit()
 	p.listenersInit()
@@ -106,8 +112,8 @@ func (p *Peer) Logic(connType soul.ConnectionType, conn net.Conn) {
 	case file.ConnectionType:
 		init := new(file.TransferInit)
 		err := init.Deserialize(conn)
-		if err != nil {
-			log.Error().Err(err).Msg("transfer init deserialize")
+		if err != nil && !errors.Is(err, io.EOF) {
+			p.Error().Err(err).Msg("transfer init deserialize")
 			return
 		}
 
@@ -115,7 +121,7 @@ func (p *Peer) Logic(connType soul.ConnectionType, conn net.Conn) {
 		p.fileConns[init.Token] = conn
 		p.muF.Unlock()
 
-		log.Info().Str("username", p.username).Msg("file F connection")
+		p.Info().Msg("file F connection")
 	}
 }
 
@@ -134,67 +140,69 @@ func (p *Peer) File(ctx context.Context, token soul.Token, offset uint64) (net.C
 			p.muF.Unlock()
 
 			if !ok {
-				if p.ip != nil {
-					log.Info().Str("username", p.username).Str("ip", p.ip.String()).Int("port", p.port).Msg("file F connection not found")
+				// if p.ip != nil {
+				// p.Debug().Str("ip", p.ip.String()).Int("port", p.port).Msg("file F connection not found and no ip")
 
-					conn, err := net.Dial("tcp", fmt.Sprintf("%s:%v", p.ip.String(), p.port))
-					if err != nil {
-						return nil, err
-					}
+				// conn, err := net.Dial("tcp", fmt.Sprintf("%s:%v", p.ip.String(), p.port))
+				// if err != nil {
+				// 	return nil, err
+				// }
 
-					init := new(peer.PeerInit)
-					message, err := init.Serialize(p.config.Username, file.ConnectionType)
-					if err != nil {
-						return nil, err
-					}
+				// init := new(peer.PeerInit)
+				// message, err := init.Serialize(p.config.Username, file.ConnectionType)
+				// if err != nil {
+				// 	return nil, err
+				// }
 
-					_, err = conn.Write(message)
-					if err != nil {
-						return nil, err
-					}
+				// _, err = conn.Write(message)
+				// if err != nil {
+				// 	return nil, err
+				// }
 
-					initT := new(file.TransferInit)
-					message, err = initT.Serialize(token)
-					if err != nil {
-						return nil, err
-					}
+				// initT := new(file.TransferInit)
+				// message, err = initT.Serialize(token)
+				// if err != nil {
+				// 	return nil, err
+				// }
 
-					_, err = conn.Write(message)
-					if err != nil {
-						return nil, err
-					}
+				// _, err = conn.Write(message)
+				// if err != nil {
+				// 	return nil, err
+				// }
 
-					off := new(file.Offset)
-					message, err = off.Serialize(offset)
-					if err != nil {
-						return nil, err
-					}
+				// off := new(file.Offset)
+				// message, err = off.Serialize(offset)
+				// if err != nil {
+				// 	return nil, err
+				// }
 
-					_, err = conn.Write(message)
-					if err != nil {
-						return nil, err
-					}
+				// _, err = conn.Write(message)
+				// if err != nil {
+				// 	return nil, err
+				// }
 
-					return conn, nil
-				}
+				// return conn, nil
+				// }
 
-				log.Info().Str("username", p.username).Msg("file F connection not found")
 				time.Sleep(time.Second)
 				continue
 			}
 
 			if ok {
-				log.Info().Str("username", p.username).Msg("file F connection found")
+				p.Debug().Msg("file F connection found")
+
 				o := new(file.Offset)
 				message, err := o.Serialize(offset)
 				if err != nil {
 					return nil, err
 				}
 
-				_, err = conn.Write(message)
+				n, err := conn.Write(message)
 				if err != nil {
 					return nil, err
 				}
+
+				p.Debug().Int("bytes written", n).Uint64("offset", offset).Msg("file F offset sent")
 
 				return conn, nil
 			}
@@ -213,7 +221,7 @@ func (p *Peer) write(ctx context.Context) {
 			_, err := peer.MessageWrite(p.conn, m)
 			p.mu.RUnlock()
 			if err != nil {
-				log.Err(err).Str("username", p.username).Msg("peer write")
+				p.Err(err).Msg("peer write")
 				continue
 			}
 		}
@@ -238,7 +246,7 @@ func (p *Peer) read(ctx context.Context) {
 					continue
 				}
 
-				log.Error().Err(err).Str("username", p.username).Msg("peer read")
+				p.Error().Err(err).Msg("peer read")
 				continue
 			}
 
@@ -265,7 +273,7 @@ func (p *Peer) writeD(ctx context.Context) {
 			_, err := distributed.MessageWrite(p.distributedConn, m)
 			p.mu.RUnlock()
 			if err != nil {
-				log.Error().Err(err).Str("username", p.username).Msg("distributed write")
+				p.Error().Err(err).Msg("distributed write")
 				continue
 			}
 		}
@@ -288,11 +296,11 @@ func (p *Peer) readD(ctx context.Context) {
 					continue
 				}
 
-				log.Error().Err(err).Str("username", p.username).Msg("distributed read")
+				p.Error().Err(err).Msg("distributed read")
 				continue
 			}
 
-			log.Debug().Str("username", p.username).Str("code", code.String()).Msg("distributed read")
+			p.Debug().Str("code", code.String()).Msg("distributed read")
 			p.queueD <- map[distributed.Code]io.Reader{distributed.Code(code): r}
 		}
 	}
@@ -315,7 +323,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(distributed.BranchLevel)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("branch level deserialize")
+							p.Error().Err(err).Msg("branch level deserialize")
 							continue
 						}
 
@@ -325,7 +333,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(distributed.BranchRoot)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("branch root deserialize")
+							p.Error().Err(err).Msg("branch root deserialize")
 							continue
 						}
 
@@ -335,7 +343,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(distributed.EmbeddedMessage)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("embedded message deserialize")
+							p.Error().Err(err).Msg("embedded message deserialize")
 							continue
 						}
 
@@ -345,7 +353,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(distributed.Search)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("search deserialize")
+							p.Error().Err(err).Msg("search deserialize")
 							continue
 						}
 
@@ -365,7 +373,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.FileSearchResponse)
 						err := m.Deserialize(r)
 						if err != nil && !errors.Is(err, io.EOF) {
-							log.Error().Err(err).Msg("file search response deserialize")
+							p.Error().Err(err).Msg("file search response deserialize")
 							continue
 						}
 
@@ -375,7 +383,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.FolderContentsRequest)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("folder contents request deserialize")
+							p.Error().Err(err).Msg("folder contents request deserialize")
 							continue
 						}
 
@@ -385,7 +393,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.FolderContentsResponse)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("folder contents response deserialize")
+							p.Error().Err(err).Msg("folder contents response deserialize")
 							continue
 						}
 
@@ -395,7 +403,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.PlaceInQueueRequest)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("place in queue request deserialize")
+							p.Error().Err(err).Msg("place in queue request deserialize")
 							continue
 						}
 
@@ -405,7 +413,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.PlaceInQueueResponse)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("place in queue response deserialize")
+							p.Error().Err(err).Msg("place in queue response deserialize")
 							continue
 						}
 
@@ -415,7 +423,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.QueueUpload)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("queue upload deserialize")
+							p.Error().Err(err).Msg("queue upload deserialize")
 							continue
 						}
 
@@ -425,7 +433,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.SharedFileListResponse)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("shared file list response deserialize")
+							p.Error().Err(err).Msg("shared file list response deserialize")
 							continue
 						}
 
@@ -435,7 +443,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.SharedFileListRequest)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("shared file list request deserialize")
+							p.Error().Err(err).Msg("shared file list request deserialize")
 							continue
 						}
 
@@ -445,7 +453,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.TransferRequest)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("transfer request deserialize")
+							p.Error().Err(err).Msg("transfer request deserialize")
 							continue
 						}
 
@@ -455,7 +463,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.TransferResponse)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("transfer response deserialize")
+							p.Error().Err(err).Msg("transfer response deserialize")
 							continue
 						}
 
@@ -465,7 +473,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.UploadDenied)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("upload denied deserialize")
+							p.Error().Err(err).Msg("upload denied deserialize")
 							continue
 						}
 
@@ -475,7 +483,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.UploadFailed)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("upload failed deserialize")
+							p.Error().Err(err).Msg("upload failed deserialize")
 							continue
 						}
 
@@ -485,7 +493,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.UserInfoRequest)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("deserialize")
+							p.Error().Err(err).Msg("deserialize")
 							continue
 						}
 
@@ -495,7 +503,7 @@ func (p *Peer) deserialize(ctx context.Context) {
 						m := new(peer.UserInfoResponse)
 						err := m.Deserialize(r)
 						if err != nil {
-							log.Error().Err(err).Msg("user info response deserialize")
+							p.Error().Err(err).Msg("user info response deserialize")
 							continue
 						}
 

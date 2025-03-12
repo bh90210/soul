@@ -48,7 +48,7 @@ case server.CodeLogin:
 
 ## Client
 
-To successfully make use of the network, you will need certain procedures involving multiple types of connections at once. Under `client` package you will find the most common actions a client will probably make (login, search, download, participation in the distributed network and API for responding to search quests and uploads.) If like me your goal is to make a CLI, preferably one that will run on a server rather than a desktop and used as a library inside other Go software, then client code in the `client` package can be potentially useful as is, albeit incomplete (no private messages, not chat rooms, no file indexing/handling, no database etc, and yes PRs are still very welcome!)
+To successfully make use of the network, you will need certain procedures involving multiple types of connections at once. Under `client` package you will find the most common actions a client will probably make (login, search, download, participation in the distributed network and API for responding to search quests and uploads.) If like me your goal is to make a CLI, preferably one that will run on a server rather than a desktop and used as a library inside other Go software, then client code in the `client` package can be potentially useful as is, albeit incomplete (no file indexing/management, no database for state etc and yes PRs are still very welcome!)
 
 ### API
 
