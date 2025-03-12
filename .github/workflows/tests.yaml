@@ -1,0 +1,24 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  testsuite:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Test suite
+      run: go test -parallel 100 --cover -covermode=atomic -coverpkg=./... ./... -coverprofile=coverage.txt	
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
