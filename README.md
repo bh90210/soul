@@ -13,7 +13,9 @@ This implementation and naming convention is based on the [Nicotine+](https://ni
 
 The library offers complete coverage of all server, peer, distributed and file messages' serialization and deserialization.
 
-On top there is a client package with file sharing capabilities (global search/download/upload API/distributed network participation, obfuscation) but no chat, rooms, room searches & direct messages/searches (PRs are welcome :).
+On top there is a client package with file sharing capabilities (global search/download/upload API/distributed network participation, obfuscation) but no room searches, direct peer searches for directories or wishlist (PRs are welcome* :)
+
+_* in the year 2025 & looking forward, maybe sending messages to chat rooms not encrypted isn't the best idea, so please avoid that. Client chat/messaging code missing is a feature. Even though server messages facilitating this functionality are present in the library for completeness sake, consider not using them._
 
 # How to use
 
@@ -59,7 +61,7 @@ func main() {
 
 ## Client
 
-To successfully make use of the network, you will need certain procedures involving multiple types of connections at once. Under `client` package you will find the most common actions a client will probably make (login, search, download, participation in the distributed network and API for responding to search quests and uploads.) If like me your goal is to make a CLI, preferably one that will run on a server rather than a desktop and used as a library inside other Go software, then client code in the `client` package can be potentially useful as is, albeit incomplete (no file indexing/management, no database for state etc and yes PRs are still very welcome!)
+To successfully make use of the network, you will need certain procedures involving multiple types of connections at once. Under `client` package you will find the most common actions a client will probably make (login, search, download, participation in the distributed network and API for responding to search quests and uploads.) If like me your goal is to make a CLI, preferably one that will run on a server rather than a desktop and used as a library inside other Go software, then client code in the `client` package can be potentially useful as is, albeit incomplete (no file indexing/management, no database for state etc, yes PRs are still very welcome!)
 
 ### Client, Peer & State
 
@@ -69,7 +71,7 @@ _State_ struct is where the "business logic" lives. Besides the API it provides,
 
 ## Tests
 
-The library is thoroughly covered via unit and integration tests. Running the `-short` test suite will result in running the unit tests. The integration tests need docker available in host to run. This is because we are opening a local [Soulfind](https://github.com/soulfind-dev/soulfind) instance (check the `/client/Dockerfile` for more.)
+The library is covered via unit and integration tests. Running the `-short` test suite will result in running the unit tests. The integration tests need docker available in host to run. This is because we are opening a local [Soulfind](https://github.com/soulfind-dev/soulfind) instance (check the `/client/Dockerfile` for more.)
 
 Units cover all connection types' serialization/deserialization and internal packages.
 
@@ -96,5 +98,4 @@ If this library was not what you were looking for consider checking out [spotsee
 - [ ] finish server tests + documentation
 - [ ] client integration tests
 - [ ] search code for outstanding TODOs
-- [ ] support obfuscation
 - [ ] release v1.1.1
