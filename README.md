@@ -27,36 +27,45 @@ Low level code facilitating the serialization and deserialization of each connec
 
 Each message is a struct, for example to make use of the server connection Login message code you need to:
 ```go
-// Open a connection with the server.
-conn, _ = net.Dial("tcp", "server.slsknet.org:2242")
+package main
 
-// Send the login message.
-login := new(server.Login)
-req, _ := login.Serialize("username", "password")
-server.MessageWrite(conn, req)
+import (
+	"fmt"
+	"net"
 
-// Receive the server message.
-res, _, code, _ := server.MessageRead(conn)
-switch server.Code(code) { // Uint32 to own server.Code type (int.)
-case server.CodeLogin:
-	login := new(server.Login)
-	login.Deserialize(res)
-	fmt.Println(login.Greet, login.IP, login.Sum)
-...
+	"github.com/bh90210/soul/server"
+)
+
+func main() {
+	// Open a connection with the server.
+	conn, _ := net.Dial("tcp", "server.slsknet.org:2242")
+
+	// Send the login message.
+	server.Write(conn, &server.Login{Username: "username", Password: "password"})
+
+	// Receive the server response.
+	res, _, code, _ := server.Read(conn)
+	switch code {
+	case server.CodeLogin:
+		login := new(server.Login)
+		login.Deserialize(res)
+
+		fmt.Println(login.Greet, login.IP, login.Sum)
+	...
+	}
 }
+
 ```
 
 ## Client
 
 To successfully make use of the network, you will need certain procedures involving multiple types of connections at once. Under `client` package you will find the most common actions a client will probably make (login, search, download, participation in the distributed network and API for responding to search quests and uploads.) If like me your goal is to make a CLI, preferably one that will run on a server rather than a desktop and used as a library inside other Go software, then client code in the `client` package can be potentially useful as is, albeit incomplete (no file indexing/management, no database for state etc and yes PRs are still very welcome!)
 
-### API
+### Client, Peer & State
 
-#### Client
+The methods of _Client_ and _Peer_ structs are purposefully small and simple. Both provide a `Relays` field that can produce listeners for all incoming messages. This can potentially be your point of departure. Using _Client_ and _Peer_ and come up with your own state solution. Except bug fixes the intention is for those structs/API to remain dormant.
 
-#### Peer
-
-#### State
+_State_ struct is where the "business logic" lives. Besides the API it provides, once connected to SoulSeek in the background it will take care of the distributed network and responding to peer and server requests.
 
 ## Tests
 
@@ -75,3 +84,17 @@ go test -parallel 100 --cover -covermode=atomic -coverpkg=./... ./...
 Fork of [goose](https://github.com/a-cordier/goose). Thanks to `a-cordier` for starting the effort as this is usually the hardest part.
 
 If this library was not what you were looking for consider checking out [spotseek](https://github.com/boristopalov/spotseek).
+
+
+# TODO
+- [ ] finish state download function
+- [ ] finish state distributed support
+- [ ] implement state limits
+- [ ] extend/implement config
+- [ ] incoming search/file requests via state
+- [ ] finish peer tests + documentation
+- [ ] finish server tests + documentation
+- [ ] client integration tests
+- [ ] search code for outstanding TODOs
+- [ ] support obfuscation
+- [ ] release v1.1.1

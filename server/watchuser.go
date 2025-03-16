@@ -24,11 +24,11 @@ type WatchUser struct {
 }
 
 // Serialize serializes the WatchUser struct into a byte slice
-func (w WatchUser) Serialize(username string) ([]byte, error) {
+func (w *WatchUser) Serialize(message *WatchUser) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	internal.WriteUint32(buf, uint32(CodeWatchUser))
 
-	err := internal.WriteString(buf, username)
+	err := internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}

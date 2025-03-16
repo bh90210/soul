@@ -27,17 +27,61 @@ const (
 	StatusOnline
 )
 
-// MessageRead reads a message from a server connection. It reads the size of the message
+// Read reads a message from a server connection. It reads the size of the message
 // and the code of the message. It then reads the message from the connection and
 // returns the message, the size of the message, the code of the message and an error.
-func MessageRead(connection net.Conn) (*bytes.Buffer, int, Code, error) {
-	r, s, c, err := internal.MessageRead(internal.CodeServer(0), connection)
+func Read(connection net.Conn) (*bytes.Buffer, int, Code, error) {
+	r, s, c, err := internal.MessageRead(internal.CodeServer(0), connection, false)
 	return r, s, Code(c), err
 }
 
-// MessageWrite writes a message to a server connection. It writes the size of the message
-// and the code of the message. It then writes the message to the connection and returns
-// the number of bytes written and an error.
-func MessageWrite(connection net.Conn, message []byte) (int, error) {
-	return internal.MessageWrite(connection, message)
+type message[M any] interface {
+	*AcceptChildren |
+		*BranchLevel |
+		*BranchRoot |
+		*CantConnectToPeer |
+		*ChangePassword |
+		*CheckPrivileges |
+		*ConnectToPeer |
+		*FileSearch |
+		*GetPeerAddress |
+		*GetUserStats |
+		*GetUserStatus |
+		*HaveNoParent |
+		*JoinRoom |
+		*LeaveRoom |
+		*Login |
+		*MessageAcked |
+		*MessageUser |
+		*MessageUsers |
+		*Ping |
+		*PrivateRoomAddOperator |
+		*PrivateRoomAddUser |
+		*PrivateRoomCancelMembership |
+		*PrivateRoomDisown |
+		*PrivateRoomRemoveOperator |
+		*PrivateRoomRemoveUser |
+		*PrivateRoomToggle |
+		*RoomList |
+		*RoomSearch |
+		*RoomTickerSet |
+		*SayChatroom |
+		*SendUploadSpeed |
+		*SetListenPort |
+		*SetStatus |
+		*SharedFoldersFiles |
+		*UnwatchUser |
+		*UserSearch |
+		*WatchUser |
+		*WishlistSearch
+	Serialize(M) ([]byte, error)
+}
+
+func Write[M message[M]](connection net.Conn, message M) (int, error) {
+	m, err := message.Serialize(message)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.MessageWrite(connection, m, false)
 }

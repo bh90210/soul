@@ -18,19 +18,19 @@ type FileSearch struct {
 	SearchQuery string
 }
 
-func (f FileSearch) Serialize(token soul.Token, searchQuery string) ([]byte, error) {
+func (f *FileSearch) Serialize(message *FileSearch) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeFileSearch))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, searchQuery)
+	err = internal.WriteString(buf, message.SearchQuery)
 	if err != nil {
 		return nil, err
 	}

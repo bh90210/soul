@@ -9,21 +9,24 @@ import (
 
 const CodeWishlistSearch Code = 103
 
-type WishlistSearch struct{}
+type WishlistSearch struct {
+	Token       soul.Token
+	SearchQuery string
+}
 
-func (w WishlistSearch) Serialize(token soul.Token, serachQuery string) ([]byte, error) {
+func (w *WishlistSearch) Serialize(message *WishlistSearch) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeWishlistSearch))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, serachQuery)
+	err = internal.WriteString(buf, message.SearchQuery)
 	if err != nil {
 		return nil, err
 	}

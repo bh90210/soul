@@ -6,6 +6,7 @@ toolchain go1.22.2
 
 require (
 	github.com/dustin/go-humanize v1.0.1
+	github.com/gosuri/uilive v0.0.4
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0

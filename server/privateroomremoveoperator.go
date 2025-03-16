@@ -17,19 +17,19 @@ type PrivateRoomRemoveOperator struct {
 	Username string
 }
 
-func (p PrivateRoomRemoveOperator) Serialize(room, username string) ([]byte, error) {
+func (p *PrivateRoomRemoveOperator) Serialize(message *PrivateRoomRemoveOperator) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodePrivateRoomRemoveOperator))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, room)
+	err = internal.WriteString(buf, message.Room)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}

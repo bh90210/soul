@@ -18,7 +18,7 @@ type PlaceInQueueRequest struct {
 	Filename string
 }
 
-func (PlaceInQueueRequest) Serialize(filename string) ([]byte, error) {
+func (PlaceInQueueRequest) Serialize(message *PlaceInQueueRequest) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	err := internal.WriteUint32(buf, uint32(CodePlaceInQueueRequest))
@@ -26,7 +26,7 @@ func (PlaceInQueueRequest) Serialize(filename string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, filename)
+	err = internal.WriteString(buf, message.Filename)
 	if err != nil {
 		return nil, err
 	}

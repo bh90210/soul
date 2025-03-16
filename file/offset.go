@@ -16,9 +16,9 @@ type Offset struct {
 
 // Serialize accepts an offset and returns a message packed as a byte slice.
 // The offset is the number of bytes of the file that the peer has previously downloaded.
-func (Offset) Serialize(offset uint64) ([]byte, error) {
+func (o *Offset) Serialize(message *Offset) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	err := internal.WriteUint64(buf, offset)
+	err := internal.WriteUint64(buf, message.Offset)
 	if err != nil {
 		return nil, err
 	}

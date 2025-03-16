@@ -20,14 +20,14 @@ type BranchRoot struct {
 }
 
 // Serialize accepts a root and returns a message packed as a byte slice.
-func (BranchRoot) Serialize(root string) ([]byte, error) {
+func (b *BranchRoot) Serialize(message *BranchRoot) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodeBranchRoot))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, root)
+	err = internal.WriteString(buf, message.Root)
 	if err != nil {
 		return nil, err
 	}

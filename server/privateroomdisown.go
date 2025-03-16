@@ -8,16 +8,18 @@ import (
 
 const CodePrivateRoomDisown Code = 137
 
-type PrivateRoomDisown struct{}
+type PrivateRoomDisown struct {
+	Room string
+}
 
-func (p PrivateRoomDisown) Serialize(room string) ([]byte, error) {
+func (p *PrivateRoomDisown) Serialize(message *PrivateRoomDisown) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodePrivateRoomDisown))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, room)
+	err = internal.WriteString(buf, message.Room)
 	if err != nil {
 		return nil, err
 	}

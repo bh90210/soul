@@ -16,14 +16,14 @@ type ChangePassword struct {
 	Pass string
 }
 
-func (ChangePassword) Serialize(pass string) ([]byte, error) {
+func (c *ChangePassword) Serialize(message *ChangePassword) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeChangePassword))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, pass)
+	err = internal.WriteString(buf, message.Pass)
 	if err != nil {
 		return nil, err
 	}

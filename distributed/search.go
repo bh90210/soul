@@ -21,7 +21,7 @@ type Search struct {
 }
 
 // Serialize accepts a token, username, and query and returns a message packed as a byte slice.
-func (Search) Serialize(token soul.Token, username, query string) ([]byte, error) {
+func (s *Search) Serialize(message *Search) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodeSearch))
 	if err != nil {
@@ -33,17 +33,17 @@ func (Search) Serialize(token soul.Token, username, query string) ([]byte, error
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, query)
+	err = internal.WriteString(buf, message.Query)
 	if err != nil {
 		return nil, err
 	}

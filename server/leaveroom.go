@@ -16,14 +16,14 @@ type LeaveRoom struct {
 	Room string
 }
 
-func (l LeaveRoom) Serialize(room string) ([]byte, error) {
+func (l *LeaveRoom) Serialize(message *LeaveRoom) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeLeaveRoom))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, room)
+	err = internal.WriteString(buf, message.Room)
 	if err != nil {
 		return nil, err
 	}

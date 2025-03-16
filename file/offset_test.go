@@ -11,7 +11,8 @@ func TestOffset(t *testing.T) {
 	t.Parallel()
 
 	offset := new(Offset)
-	r, err := offset.Serialize(1)
+	offset.Offset = 1
+	r, err := offset.Serialize(offset)
 	assert.NoError(t, err)
 	assert.NotNil(t, r)
 

@@ -9,26 +9,30 @@ import (
 
 const CodeUserSearch Code = 42
 
-type UserSearch struct{}
+type UserSearch struct {
+	Username    string
+	Token       soul.Token
+	SearchQuery string
+}
 
-func (u UserSearch) Serialize(username string, token soul.Token, searchQuery string) ([]byte, error) {
+func (u *UserSearch) Serialize(message *UserSearch) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeUserSearch))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, searchQuery)
+	err = internal.WriteString(buf, message.SearchQuery)
 	if err != nil {
 		return nil, err
 	}

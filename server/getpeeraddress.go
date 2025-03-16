@@ -23,14 +23,14 @@ type GetPeerAddress struct {
 }
 
 // Serialize accepts a username and returns a serialized byte array.
-func (g GetPeerAddress) Serialize(username string) ([]byte, error) {
+func (g *GetPeerAddress) Serialize(message *GetPeerAddress) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeGetPeerAddress))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -67,11 +67,6 @@ func (g *GetPeerAddress) Deserialize(reader io.Reader) error {
 	g.IP = internal.ReadIP(ip)
 
 	g.Port, err = internal.ReadUint32ToInt(reader)
-	if err != nil {
-		return err
-	}
-
-	_, err = internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}

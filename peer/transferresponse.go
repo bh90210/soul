@@ -29,7 +29,7 @@ var ErrNotAllowedWithNoReason = errors.New("rejection reason is required when tr
 // ErrBanned, ErrCancelled, ErrComplete, ErrFileNotShared, ErrFileReadError, ErrPendingShutdown,
 // ErrQueued, ErrTooManyFiles, ErrTooManyMegabytes, and ErrNotAllowedWithNoReason.
 // All errors exist in the peer.TransferResponse package.
-func (TransferResponse) Serialize(token soul.Token, allowed bool, reason ...error) ([]byte, error) {
+func (t *TransferResponse) Serialize(message *TransferResponse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	err := internal.WriteUint32(buf, uint32(CodeTransferResponse))
@@ -37,22 +37,22 @@ func (TransferResponse) Serialize(token soul.Token, allowed bool, reason ...erro
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteBool(buf, allowed)
+	err = internal.WriteBool(buf, message.Allowed)
 	if err != nil {
 		return nil, err
 	}
 
-	if !allowed {
-		if len(reason) == 0 {
+	if !message.Allowed {
+		if message.Reason == nil {
 			return nil, ErrNotAllowedWithNoReason
 		}
 
-		err = internal.WriteString(buf, reason[0].Error())
+		err = internal.WriteString(buf, message.Reason.Error())
 		if err != nil {
 			return nil, err
 		}

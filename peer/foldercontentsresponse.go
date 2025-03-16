@@ -27,7 +27,7 @@ type Folder struct {
 	Files     []File
 }
 
-func (FolderContentsResponse) Serialize(token soul.Token, folder string, folders []Folder) ([]byte, error) {
+func (f *FolderContentsResponse) Serialize(message *FolderContentsResponse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeFolderContentsResponse))
 	if err != nil {
@@ -36,22 +36,22 @@ func (FolderContentsResponse) Serialize(token soul.Token, folder string, folders
 
 	zw := zlib.NewWriter(buf)
 
-	err = internal.WriteUint32(zw, uint32(token))
+	err = internal.WriteUint32(zw, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(zw, folder)
+	err = internal.WriteString(zw, message.Folder)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(zw, uint32(len(folders)))
+	err = internal.WriteUint32(zw, uint32(len(message.Folders)))
 	if err != nil {
 		return nil, err
 	}
 
-	for _, f := range folders {
+	for _, f := range message.Folders {
 		err = internal.WriteString(zw, f.Directory)
 		if err != nil {
 			return nil, err
@@ -148,7 +148,7 @@ func (f *FolderContentsResponse) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	for i := 0; i < int(folders); i++ {
+	for range int(folders) {
 		var folder Folder
 
 		folder.Directory, err = internal.ReadString(zr)
@@ -161,7 +161,7 @@ func (f *FolderContentsResponse) Deserialize(reader io.Reader) error {
 			return err
 		}
 
-		for j := 0; j < int(files); j++ {
+		for range int(files) {
 			var file File
 
 			_, err = internal.ReadUint8(zr)
@@ -189,7 +189,7 @@ func (f *FolderContentsResponse) Deserialize(reader io.Reader) error {
 				return err
 			}
 
-			for k := 0; k < int(attributes); k++ {
+			for range int(attributes) {
 				var a Attribute
 
 				code, err := internal.ReadUint32(zr)

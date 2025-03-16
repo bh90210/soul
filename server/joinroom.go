@@ -35,19 +35,19 @@ type User struct {
 	CountryCode string
 }
 
-func (j JoinRoom) Serialize(room string, private bool) ([]byte, error) {
+func (j *JoinRoom) Serialize(message *JoinRoom) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeJoinRoom))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, room)
+	err = internal.WriteString(buf, message.Room)
 	if err != nil {
 		return nil, err
 	}
 
-	if private {
+	if message.Private {
 		internal.WriteUint32(buf, 1)
 	} else {
 		internal.WriteUint32(buf, 0)
@@ -82,7 +82,7 @@ func (j *JoinRoom) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	for i := 0; i < int(usersInRoom); i++ {
+	for range int(usersInRoom) {
 		var u User
 
 		u.Username, err = internal.ReadString(reader)
@@ -112,7 +112,7 @@ func (j *JoinRoom) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	for i := 0; i < int(stats); i++ {
+	for i := range int(stats) {
 		speed, err := internal.ReadUint32(reader)
 		if err != nil {
 			return err
@@ -152,7 +152,7 @@ func (j *JoinRoom) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	for i := 0; i < int(slots); i++ {
+	for i := range int(slots) {
 		freeSlots, err := internal.ReadUint32(reader)
 		if err != nil {
 			return err
@@ -166,7 +166,7 @@ func (j *JoinRoom) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	for i := 0; i < int(countries); i++ {
+	for i := range int(countries) {
 		countryCode, err := internal.ReadString(reader)
 		if err != nil {
 			return err
@@ -185,7 +185,7 @@ func (j *JoinRoom) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	for i := 0; i < int(operators); i++ {
+	for range int(operators) {
 		operator, err := internal.ReadString(reader)
 		if err != nil {
 			return err

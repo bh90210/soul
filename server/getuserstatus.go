@@ -19,14 +19,14 @@ type GetUserStatus struct {
 }
 
 // Serialize serializes the GetUserStatus struct into a byte slice
-func (g GetUserStatus) Serialize(username string) ([]byte, error) {
+func (g *GetUserStatus) Serialize(message *GetUserStatus) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeGetUserStatus))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}

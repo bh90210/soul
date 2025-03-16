@@ -17,19 +17,19 @@ type PrivateRoomAddUser struct {
 	Username string
 }
 
-func (p PrivateRoomAddUser) Serialize(room, username string) ([]byte, error) {
+func (p *PrivateRoomAddUser) Serialize(message *PrivateRoomAddUser) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodePrivateRoomAddUser))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, room)
+	err = internal.WriteString(buf, message.Room)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}

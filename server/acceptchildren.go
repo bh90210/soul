@@ -8,16 +8,18 @@ import (
 
 const CodeAcceptChildren Code = 100
 
-type AcceptChildren struct{}
+type AcceptChildren struct {
+	Accept bool
+}
 
-func (AcceptChildren) Serialize(accept bool) ([]byte, error) {
+func (a *AcceptChildren) Serialize(message *AcceptChildren) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeAcceptChildren))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteBool(buf, accept)
+	err = internal.WriteBool(buf, message.Accept)
 	if err != nil {
 		return nil, err
 	}

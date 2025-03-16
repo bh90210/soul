@@ -14,7 +14,8 @@ func TestTransferInit(t *testing.T) {
 	token := soul.NewToken()
 
 	transferInit := new(TransferInit)
-	r, err := transferInit.Serialize(token)
+	transferInit.Token = token
+	r, err := transferInit.Serialize(transferInit)
 	assert.NoError(t, err)
 	assert.NotNil(t, r)
 

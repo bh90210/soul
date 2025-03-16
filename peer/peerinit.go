@@ -14,24 +14,24 @@ const CodePeerInit CodeInit = 1
 
 // PeerInit code 1 message is sent to initiate a direct connection to another peer.
 type PeerInit struct {
-	// RemoteUsername is the username of the peer that wants to connect to us.
-	RemoteUsername string
+	// Username is the username of the peer that wants to connect to us.
+	Username       string
 	ConnectionType soul.ConnectionType
 }
 
-func (PeerInit) Serialize(ownUsername string, connType soul.ConnectionType) ([]byte, error) {
+func (p *PeerInit) Serialize(message *PeerInit) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodePeerInit))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, ownUsername)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, string(connType))
+	err = internal.WriteString(buf, string(message.ConnectionType))
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (p *PeerInit) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", CodePeerInit, code))
 	}
 
-	p.RemoteUsername, err = internal.ReadString(reader)
+	p.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}

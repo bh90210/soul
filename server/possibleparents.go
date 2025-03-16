@@ -49,7 +49,7 @@ func (p *PossibleParents) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	for i := 0; i < int(parents); i++ {
+	for range int(parents) {
 		var parent Parent
 
 		parent.Username, err = internal.ReadString(reader)

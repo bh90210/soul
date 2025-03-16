@@ -20,14 +20,14 @@ type GetUserStats struct {
 	Directories int
 }
 
-func (g GetUserStats) Serialize(username string) ([]byte, error) {
+func (g *GetUserStats) Serialize(message *GetUserStats) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeGetUserStats))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}

@@ -18,19 +18,19 @@ type SayChatroom struct {
 	Username string
 }
 
-func (s SayChatroom) Serialize(room, message string) ([]byte, error) {
+func (s *SayChatroom) Serialize(message *SayChatroom) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeSayChatroom))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, room)
+	err = internal.WriteString(buf, message.Room)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, message)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}

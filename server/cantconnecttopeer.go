@@ -17,19 +17,19 @@ type CantConnectToPeer struct {
 	Username string
 }
 
-func (CantConnectToPeer) Serialize(token soul.Token, username string) ([]byte, error) {
+func (c *CantConnectToPeer) Serialize(message *CantConnectToPeer) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeCantConnectToPeer))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}

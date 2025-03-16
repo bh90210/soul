@@ -10,17 +10,25 @@ import (
 const CodeSetListenPort Code = 2
 
 // SetListenPort SetListenPort.
-type SetListenPort struct{}
+type SetListenPort struct {
+	Port           int
+	ObfuscatedPort int
+}
 
 // Serialize accepts a port number and returns a serialized byte array.
-func (s SetListenPort) Serialize(port uint32) ([]byte, error) {
+func (s SetListenPort) Serialize(message *SetListenPort) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeSetListenPort))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, port)
+	err = internal.WriteUint32(buf, uint32(message.Port))
+	if err != nil {
+		return nil, err
+	}
+
+	err = internal.WriteUint32(buf, uint32(message.ObfuscatedPort))
 	if err != nil {
 		return nil, err
 	}

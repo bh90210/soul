@@ -23,7 +23,6 @@ import (
 type Client struct {
 	// Relays contains all possible server messages the client will deserialize and notify.
 	Relays serverRelays
-	Writer chan []byte
 	// firewallTokens is a map of incoming Firewall tokens and connections.
 	Firewall chan *PierceFirewall
 	// Init initiates a connection with a peer. Consumers will receive a deserialized peer.PeerInit message.
@@ -34,7 +33,8 @@ type Client struct {
 	// SoulSeek network connection.
 	conn net.Conn
 	// listener net.Listener for incoming peer connections.
-	listener net.Listener
+	listener           net.Listener
+	listenerObfuscated net.Listener
 	// queue is filled by reading the conn. It is used to deserialize messages.
 	// It is a channel of maps where the key is the server message code and the value is the message.
 	queue chan map[server.Code]io.Reader
@@ -43,50 +43,55 @@ type Client struct {
 	wg       sync.WaitGroup
 	cancel   context.CancelFunc
 
-	zerolog.Logger
+	log zerolog.Logger
 }
 
 type PierceFirewall struct {
 	*peer.PierceFirewall
-	Conn net.Conn
+	Conn       net.Conn
+	Obfuscated bool
 }
 
 type PeerInit struct {
 	*peer.PeerInit
-	Conn net.Conn
+	Conn       net.Conn
+	Obfuscated bool
 }
 
 type Config struct {
-	SoulSeekAddress string
-	SoulSeekPort    int
-	OwnPort         int
-	Username        string
-	Password        string
-	SharedFolders   int
-	SharedFiles     int
-	LogLevel        zerolog.Level // TODO: fix logger.
-	MaxUploads      int
-	Timeout         time.Duration
-	LoginTimeout    time.Duration
-	DownloadFolder  string
-	MaxPeers        int64
+	SoulSeekAddress           string
+	SoulSeekPort              int
+	OwnHostname               string
+	OwnPort                   int
+	OwnObfuscatedPort         int
+	Username                  string
+	Password                  string
+	SharedFolders             int
+	SharedFiles               int
+	LogLevel                  zerolog.Level
+	Timeout                   time.Duration
+	LoginTimeout              time.Duration
+	DownloadFolder            string
+	MaxPeers                  int64
+	MaxFileConnections        int
+	MaxDistributedConnections int
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		SoulSeekAddress: "server.slsknet.org",
-		SoulSeekPort:    2242,
-		OwnPort:         2234,
-		Username:        gonanoid.MustGenerate("soulseek", 7),
-		Password:        gonanoid.MustGenerate("0123456789qwertyuiop", 10),
-		SharedFolders:   1,
-		SharedFiles:     1,
-		LogLevel:        zerolog.Disabled,
-		MaxUploads:      10,
-		Timeout:         2 * time.Second,
-		LoginTimeout:    1 * time.Second,
-		DownloadFolder:  os.TempDir(),
-		MaxPeers:        100,
+		SoulSeekAddress:           "server.slsknet.org",
+		SoulSeekPort:              2242,
+		OwnHostname:               "localhost",
+		OwnPort:                   2234,
+		Username:                  gonanoid.MustGenerate("soulseek", 7),
+		Password:                  gonanoid.MustGenerate("0123456789qwertyuiop", 10),
+		LogLevel:                  zerolog.Disabled,
+		Timeout:                   2 * time.Second,
+		LoginTimeout:              3 * time.Second,
+		DownloadFolder:            os.TempDir(),
+		MaxPeers:                  400,
+		MaxFileConnections:        20,
+		MaxDistributedConnections: 50,
 	}
 }
 
@@ -100,11 +105,10 @@ func New(conf ...*Config) (*Client, error) {
 		c.config = conf[0]
 	}
 
-	c.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	c.Logger = c.Logger.With().Str("username", c.config.Username).Logger()
+	c.log = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	c.log = c.log.With().Str("username", c.config.Username).Logger()
 
 	// Init all necessary maps and channels.
-	c.Writer = make(chan []byte)
 	c.queue = make(chan map[server.Code]io.Reader)
 	c.Firewall = make(chan *PierceFirewall)
 	c.Init = make(chan *PeerInit)
@@ -129,42 +133,57 @@ func (c *Client) Dial(ctx context.Context, cancel context.CancelFunc) error {
 		return err
 	}
 
+	go c.read(ctx)
+
 	// Listen for incoming peer connections.
 	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if c.listener != nil {
 		err = c.listener.Close()
 		if err != nil {
-			c.mu.Unlock()
 			go cancel()
 			return err
 		}
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", c.config.OwnPort))
+	c.listener, err = net.Listen("tcp", fmt.Sprintf("%s:%v", c.config.OwnHostname, c.config.OwnPort))
 	if err != nil {
-		c.mu.Unlock()
 		go cancel()
 		return err
 	}
 
-	c.listener = listener
 	c.cancel = cancel
-	c.mu.Unlock()
 
-	go c.read(ctx)
-	go c.write(ctx)
 	go c.listen(ctx)
+
+	if c.config.OwnObfuscatedPort != 0 {
+		c.listenerObfuscated, err = net.Listen("tcp", fmt.Sprintf("%s:%v", c.config.OwnHostname, c.config.OwnObfuscatedPort))
+		if err != nil {
+			go cancel()
+			return err
+		}
+
+		go c.listenObfuscated(ctx)
+	}
 
 	go func() {
 		<-ctx.Done()
-		c.close()
+		c.Close()
 	}()
 
 	return nil
 }
 
-// close the c.conn connection to server.
-func (c *Client) close() error {
+func (c *Client) Conn() net.Conn {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.conn
+}
+
+// Close the c.conn connection to server.
+func (c *Client) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -185,7 +204,7 @@ func (c *Client) dial() error {
 	switch c.dialling {
 	// If dialling is true we wait for the other process to finish.
 	case true:
-		c.Debug().Msg("waiting for dialling to finish")
+		c.log.Debug().Msg("waiting for dialling to finish")
 		// We must unlock the mutex before waiting for the other process to finish.
 		c.mu.Unlock()
 		// All parallel dialling processes will wait here for the first one to finish.
@@ -194,11 +213,11 @@ func (c *Client) dial() error {
 
 	// If dialling is false we start the dialling process.
 	case false:
-		c.Debug().Msg("dialling to server")
+		c.log.Debug().Msg("dialling to server")
 
 		if c.conn != nil {
 			// If there is an existing connection we close it.
-			c.Debug().Msg("closing existing connection")
+			c.log.Debug().Msg("closing existing connection")
 			c.conn.Close()
 		}
 
@@ -221,28 +240,9 @@ func (c *Client) dial() error {
 	c.dialling = false
 	c.mu.Unlock()
 
-	c.Debug().Msg("dialling to server successful once")
+	c.log.Debug().Msg("dialling to server successful once")
 
 	return nil
-}
-
-// Write sends a message to the c.conn connection to the server.
-func (c *Client) write(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case m := <-c.Writer:
-			c.mu.RLock()
-			_, err := server.MessageWrite(c.conn, m)
-			c.mu.RUnlock()
-			if err != nil {
-				c.Err(err).Msg("server write")
-				continue
-			}
-		}
-	}
 }
 
 // read messages from the server continuously.
@@ -254,10 +254,10 @@ func (c *Client) read(ctx context.Context) {
 
 		default:
 			c.mu.RLock()
-			r, _, code, err := server.MessageRead(c.conn)
+			r, _, code, err := server.Read(c.conn)
 			c.mu.RUnlock()
 			if err != nil {
-				c.Err(err).Msg("server read")
+				c.log.Err(err).Msg("server read")
 				continue
 			}
 
@@ -268,6 +268,66 @@ func (c *Client) read(ctx context.Context) {
 }
 
 // TODO: implement limits (see config's limits.)
+func (c *Client) listenObfuscated(ctx context.Context) {
+	co := c.log.With().Bool("obfuscated", true).Logger()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		default:
+			c.mu.RLock()
+			conn, err := c.listenerObfuscated.Accept()
+			c.mu.RUnlock()
+			if err != nil {
+				co.Error().Err(err).Msg("accept TCP")
+				continue
+			}
+
+			go func(conn net.Conn) {
+				// Upon a new connection we reed for init codes.
+				r, _, code, err := peer.Read(peer.CodeInit(0), conn, true)
+				if err != nil {
+					co.Error().Err(err).Msg("accept TCP")
+					return
+				}
+
+				switch code {
+				// We receive this message as a response to a ConnectToPeer message we sent to the server
+				// while trying to directly connect to a peer (PeerInit 1) but failed to do so.
+				case peer.CodePierceFirewall:
+					firewall := new(peer.PierceFirewall)
+					err = firewall.Deserialize(r)
+					if err != nil {
+						co.Error().Err(err).Msg("pierce firewall")
+						return
+					}
+
+					// Consumers must check the ConnectToPeer messages and match the token.
+					// Next they must wait for the PeerInit message on this connection.
+					c.Firewall <- &PierceFirewall{PierceFirewall: firewall, Conn: conn}
+
+					co.Debug().Int("token", int(firewall.Token)).Msg("incoming firewall token")
+
+				// We receive this message when a peer is trying a direct connection to us.
+				case peer.CodePeerInit:
+					peerInit := new(peer.PeerInit)
+					err := peerInit.Deserialize(r)
+					if err != nil {
+						co.Error().Err(err).Msg("peer connected")
+						return
+					}
+
+					c.Init <- &PeerInit{PeerInit: peerInit, Conn: conn}
+
+					co.Debug().Str("username", peerInit.Username).Str("connection type", string(peerInit.ConnectionType)).Msg("peer connected")
+				}
+			}(conn)
+		}
+	}
+}
+
 func (c *Client) listen(ctx context.Context) {
 	for {
 		select {
@@ -279,15 +339,15 @@ func (c *Client) listen(ctx context.Context) {
 			conn, err := c.listener.Accept()
 			c.mu.RUnlock()
 			if err != nil {
-				c.Error().Err(err).Msg("accept TCP")
+				c.log.Error().Err(err).Msg("accept TCP")
 				continue
 			}
 
 			go func(conn net.Conn) {
 				// Upon a new connection we reed for init codes.
-				r, _, code, err := peer.MessageRead(peer.CodeInit(0), conn)
+				r, _, code, err := peer.Read(peer.CodeInit(0), conn, false)
 				if err != nil {
-					c.Error().Err(err).Msg("accept TCP")
+					c.log.Error().Err(err).Msg("accept TCP")
 					return
 				}
 
@@ -298,7 +358,7 @@ func (c *Client) listen(ctx context.Context) {
 					firewall := new(peer.PierceFirewall)
 					err = firewall.Deserialize(r)
 					if err != nil {
-						c.Error().Err(err).Msg("pierce firewall")
+						c.log.Error().Err(err).Msg("pierce firewall")
 						return
 					}
 
@@ -306,20 +366,20 @@ func (c *Client) listen(ctx context.Context) {
 					// Next they must wait for the PeerInit message on this connection.
 					c.Firewall <- &PierceFirewall{PierceFirewall: firewall, Conn: conn}
 
-					c.Debug().Int("token", int(firewall.Token)).Msg("incoming firewall token")
+					c.log.Debug().Int("token", int(firewall.Token)).Msg("incoming firewall token")
 
 				// We receive this message when a peer is trying a direct connection to us.
 				case peer.CodePeerInit:
 					peerInit := new(peer.PeerInit)
 					err := peerInit.Deserialize(r)
 					if err != nil {
-						c.Error().Err(err).Msg("peer init")
+						c.log.Error().Err(err).Msg("peer connected")
 						return
 					}
 
 					c.Init <- &PeerInit{PeerInit: peerInit, Conn: conn}
 
-					c.Debug().Str("username", peerInit.RemoteUsername).Str("connection type", string(peerInit.ConnectionType)).Msg("peer init")
+					c.log.Debug().Str("username", peerInit.Username).Str("connection type", string(peerInit.ConnectionType)).Msg("peer connected")
 				}
 			}(conn)
 		}
@@ -341,7 +401,7 @@ func (c *Client) deserialize() {
 					m := new(server.AdminMessage)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("admin message deserialize")
+						c.log.Err(err).Msg("admin message deserialize")
 						return
 					}
 
@@ -351,7 +411,7 @@ func (c *Client) deserialize() {
 					m := new(server.CantConnectToPeer)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("cant connect to peer deserialize")
+						c.log.Err(err).Msg("cant connect to peer deserialize")
 						return
 					}
 
@@ -361,7 +421,7 @@ func (c *Client) deserialize() {
 					m := new(server.CantCreateRoom)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("cant create room deserialize")
+						c.log.Err(err).Msg("cant create room deserialize")
 						return
 					}
 
@@ -371,7 +431,7 @@ func (c *Client) deserialize() {
 					m := new(server.ChangePassword)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("change password deserialize")
+						c.log.Err(err).Msg("change password deserialize")
 						return
 					}
 
@@ -381,7 +441,7 @@ func (c *Client) deserialize() {
 					m := new(server.CheckPrivileges)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("check privileges deserialize")
+						c.log.Err(err).Msg("check privileges deserialize")
 						return
 					}
 
@@ -391,7 +451,7 @@ func (c *Client) deserialize() {
 					m := new(server.ConnectToPeer)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("connect to peer deserialize")
+						c.log.Err(err).Msg("connect to peer deserialize")
 						return
 					}
 
@@ -401,7 +461,7 @@ func (c *Client) deserialize() {
 					m := new(server.EmbeddedMessage)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("embedded message deserialize")
+						c.log.Err(err).Msg("embedded message deserialize")
 						return
 					}
 
@@ -411,7 +471,7 @@ func (c *Client) deserialize() {
 					m := new(server.ExcludedSearchPhrases)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("excluded search phrases deserialize")
+						c.log.Err(err).Msg("excluded search phrases deserialize")
 						return
 					}
 
@@ -421,7 +481,7 @@ func (c *Client) deserialize() {
 					m := new(server.FileSearch)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("file search deserialize")
+						c.log.Err(err).Msg("file search deserialize")
 						return
 					}
 
@@ -431,7 +491,7 @@ func (c *Client) deserialize() {
 					m := new(server.GetPeerAddress)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("get peer address deserialize")
+						c.log.Err(err).Msg("get peer address deserialize")
 						return
 					}
 
@@ -441,7 +501,7 @@ func (c *Client) deserialize() {
 					m := new(server.GetUserStats)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("get user stats deserialize")
+						c.log.Err(err).Msg("get user stats deserialize")
 						return
 					}
 
@@ -451,7 +511,7 @@ func (c *Client) deserialize() {
 					m := new(server.GetUserStatus)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("get user status deserialize")
+						c.log.Err(err).Msg("get user status deserialize")
 						return
 					}
 
@@ -461,7 +521,7 @@ func (c *Client) deserialize() {
 					m := new(server.JoinRoom)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("join room deserialize")
+						c.log.Err(err).Msg("join room deserialize")
 						return
 					}
 
@@ -471,7 +531,7 @@ func (c *Client) deserialize() {
 					m := new(server.LeaveRoom)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("leave room deserialize")
+						c.log.Err(err).Msg("leave room deserialize")
 						return
 					}
 
@@ -481,7 +541,7 @@ func (c *Client) deserialize() {
 					m := new(server.Login)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("login deserialize")
+						c.log.Err(err).Msg("login deserialize")
 						return
 					}
 
@@ -491,7 +551,7 @@ func (c *Client) deserialize() {
 					m := new(server.MessageUser)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("message user deserialize")
+						c.log.Err(err).Msg("message user deserialize")
 						return
 					}
 
@@ -501,7 +561,7 @@ func (c *Client) deserialize() {
 					m := new(server.ParentMinSpeed)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("parent min speed deserialize")
+						c.log.Err(err).Msg("parent min speed deserialize")
 						return
 					}
 
@@ -511,7 +571,7 @@ func (c *Client) deserialize() {
 					m := new(server.ParentSpeedRatio)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("parent speed ratio deserialize")
+						c.log.Err(err).Msg("parent speed ratio deserialize")
 						return
 					}
 
@@ -521,7 +581,7 @@ func (c *Client) deserialize() {
 					m := new(server.PossibleParents)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("possible parents deserialize")
+						c.log.Err(err).Msg("possible parents deserialize")
 						return
 					}
 
@@ -531,7 +591,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomAddOperator)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room add operator deserialize")
+						c.log.Err(err).Msg("private room add operator deserialize")
 						return
 					}
 
@@ -541,7 +601,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomAddUser)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room add user deserialize")
+						c.log.Err(err).Msg("private room add user deserialize")
 						return
 					}
 
@@ -551,7 +611,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomAdded)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room added deserialize")
+						c.log.Err(err).Msg("private room added deserialize")
 						return
 					}
 
@@ -561,7 +621,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomOperatorAdded)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room operator added deserialize")
+						c.log.Err(err).Msg("private room operator added deserialize")
 						return
 					}
 
@@ -571,7 +631,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomOperatorRemoved)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room operator removed deserialize")
+						c.log.Err(err).Msg("private room operator removed deserialize")
 						return
 					}
 
@@ -581,7 +641,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomOperators)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room operators deserialize")
+						c.log.Err(err).Msg("private room operators deserialize")
 						return
 					}
 
@@ -591,7 +651,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomRemoveOperator)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room remove operator deserialize")
+						c.log.Err(err).Msg("private room remove operator deserialize")
 						return
 					}
 
@@ -601,7 +661,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomRemoveUser)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room remove user deserialize")
+						c.log.Err(err).Msg("private room remove user deserialize")
 						return
 					}
 
@@ -611,7 +671,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomRemoved)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room removed deserialize")
+						c.log.Err(err).Msg("private room removed deserialize")
 						return
 					}
 
@@ -621,7 +681,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomToggle)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room toggle deserialize")
+						c.log.Err(err).Msg("private room toggle deserialize")
 						return
 					}
 
@@ -631,7 +691,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivateRoomUsers)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("private room users deserialize")
+						c.log.Err(err).Msg("private room users deserialize")
 						return
 					}
 
@@ -641,7 +701,7 @@ func (c *Client) deserialize() {
 					m := new(server.PrivilegedUsers)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("privileged users deserialize")
+						c.log.Err(err).Msg("privileged users deserialize")
 						return
 					}
 
@@ -651,7 +711,7 @@ func (c *Client) deserialize() {
 					m := new(server.Relogged)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("relogged deserialize")
+						c.log.Err(err).Msg("relogged deserialize")
 						return
 					}
 
@@ -661,7 +721,7 @@ func (c *Client) deserialize() {
 					m := new(server.ResetDistributed)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("reset distributed deserialize")
+						c.log.Err(err).Msg("reset distributed deserialize")
 						return
 					}
 
@@ -671,7 +731,7 @@ func (c *Client) deserialize() {
 					m := new(server.RoomList)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("room list deserialize")
+						c.log.Err(err).Msg("room list deserialize")
 						return
 					}
 
@@ -681,7 +741,7 @@ func (c *Client) deserialize() {
 					m := new(server.RoomTicker)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("room ticker deserialize")
+						c.log.Err(err).Msg("room ticker deserialize")
 						return
 					}
 
@@ -691,7 +751,7 @@ func (c *Client) deserialize() {
 					m := new(server.RoomTickerAdd)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("room ticker add deserialize")
+						c.log.Err(err).Msg("room ticker add deserialize")
 						return
 					}
 
@@ -701,7 +761,7 @@ func (c *Client) deserialize() {
 					m := new(server.RoomTickerRemove)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("room ticker remove deserialize")
+						c.log.Err(err).Msg("room ticker remove deserialize")
 						return
 					}
 
@@ -711,7 +771,7 @@ func (c *Client) deserialize() {
 					m := new(server.SayChatroom)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("say chatroom deserialize")
+						c.log.Err(err).Msg("say chatroom deserialize")
 						return
 					}
 
@@ -721,7 +781,7 @@ func (c *Client) deserialize() {
 					m := new(server.UserJoinedRoom)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("user joined room deserialize")
+						c.log.Err(err).Msg("user joined room deserialize")
 						return
 					}
 
@@ -731,7 +791,7 @@ func (c *Client) deserialize() {
 					m := new(server.WatchUser)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("watch user deserialize")
+						c.log.Err(err).Msg("watch user deserialize")
 						return
 					}
 
@@ -741,14 +801,14 @@ func (c *Client) deserialize() {
 					m := new(server.WishlistInterval)
 					err := m.Deserialize(r)
 					if err != nil && !errors.Is(err, io.EOF) {
-						c.Err(err).Msg("wishlist interval deserialize")
+						c.log.Err(err).Msg("wishlist interval deserialize")
 						return
 					}
 
 					c.Relays.WishlistInterval.NotifyCtx(ctx, m)
 
 				default:
-					c.Warn().Msgf("message code with no deserialization: %d", code)
+					c.log.Warn().Msgf("message code with no deserialization: %d", code)
 				}
 			}(code, r)
 		}

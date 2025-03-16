@@ -20,7 +20,7 @@ type UploadFailed struct {
 	Filename string
 }
 
-func (UploadFailed) Serialize(filename string) ([]byte, error) {
+func (u *UploadFailed) Serialize(message *UploadFailed) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	err := internal.WriteUint32(buf, uint32(CodeUploadFailed))
@@ -28,7 +28,7 @@ func (UploadFailed) Serialize(filename string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, filename)
+	err = internal.WriteString(buf, message.Filename)
 	if err != nil {
 		return nil, err
 	}

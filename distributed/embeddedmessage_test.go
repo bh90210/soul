@@ -11,7 +11,9 @@ func TestEmbeddedMessage(t *testing.T) {
 	t.Parallel()
 
 	embeddedMessage := new(EmbeddedMessage)
-	message, err := embeddedMessage.Serialize(0, []byte("test"))
+	embeddedMessage.Code = CodeEmbeddedMessage
+	embeddedMessage.Message = []byte("test")
+	message, err := embeddedMessage.Serialize(embeddedMessage)
 	assert.NoError(t, err)
 	assert.NotNil(t, message)
 

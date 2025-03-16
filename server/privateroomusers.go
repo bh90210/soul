@@ -42,7 +42,7 @@ func (p *PrivateRoomUsers) Deserialize(reader io.Reader) error {
 		return err
 	}
 
-	for i := 0; i < int(users); i++ {
+	for range int(users) {
 		user, err := internal.ReadString(reader)
 		if err != nil {
 			return err

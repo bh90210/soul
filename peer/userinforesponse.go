@@ -21,25 +21,25 @@ type UserInfoResponse struct {
 	UploadPermitted UploadPermission
 }
 
-func (UserInfoResponse) Serialize(u UserInfoResponse) ([]byte, error) {
+func (u *UserInfoResponse) Serialize(message *UserInfoResponse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeUserInfoResponse))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, u.Description)
+	err = internal.WriteString(buf, message.Description)
 	if err != nil {
 		return nil, err
 	}
 
-	if u.Picture != nil {
+	if message.Picture != nil {
 		err = internal.WriteBool(buf, true)
 		if err != nil {
 			return nil, err
 		}
 
-		err = internal.WriteBytes(buf, u.Picture)
+		err = internal.WriteBytes(buf, message.Picture)
 		if err != nil {
 			return nil, err
 		}
@@ -50,22 +50,22 @@ func (UserInfoResponse) Serialize(u UserInfoResponse) ([]byte, error) {
 		}
 	}
 
-	err = internal.WriteUint32(buf, u.TotalUpload)
+	err = internal.WriteUint32(buf, message.TotalUpload)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, u.QueueSize)
+	err = internal.WriteUint32(buf, message.QueueSize)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteBool(buf, u.FreeSlots)
+	err = internal.WriteBool(buf, message.FreeSlots)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(u.UploadPermitted))
+	err = internal.WriteUint32(buf, uint32(message.UploadPermitted))
 	if err != nil {
 		return nil, err
 	}

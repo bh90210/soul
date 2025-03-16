@@ -21,19 +21,19 @@ type EmbeddedMessage struct {
 }
 
 // Serialize accepts a code and message and returns a message packed as a byte slice.
-func (EmbeddedMessage) Serialize(code internal.CodeDistributed, message []byte) ([]byte, error) {
+func (e *EmbeddedMessage) Serialize(message *EmbeddedMessage) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodeEmbeddedMessage))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint8(buf, uint8(code))
+	err = internal.WriteUint8(buf, uint8(message.Code))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteBytes(buf, message)
+	err = internal.WriteBytes(buf, message.Message)
 	if err != nil {
 		return nil, err
 	}

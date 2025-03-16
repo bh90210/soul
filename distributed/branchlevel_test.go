@@ -11,7 +11,8 @@ func TestBranchLevel(t *testing.T) {
 	t.Parallel()
 
 	branchLevel := new(BranchLevel)
-	message, err := branchLevel.Serialize(1)
+	branchLevel.Level = 1
+	message, err := branchLevel.Serialize(branchLevel)
 	assert.NoError(t, err)
 	assert.NotNil(t, message)
 

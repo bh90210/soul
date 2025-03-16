@@ -16,14 +16,14 @@ type PrivateRoomToggle struct {
 	Enabled bool
 }
 
-func (p PrivateRoomToggle) Serialize(enabled bool) ([]byte, error) {
+func (p *PrivateRoomToggle) Serialize(message *PrivateRoomToggle) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodePrivateRoomToggle))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteBool(buf, enabled)
+	err = internal.WriteBool(buf, message.Enabled)
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,7 @@ type UploadDenied struct {
 	Reason   error
 }
 
-func (UploadDenied) Serialize(filename string, reason error) ([]byte, error) {
+func (u *UploadDenied) Serialize(message *UploadDenied) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	err := internal.WriteUint32(buf, uint32(CodeUploadDenied))
@@ -28,12 +28,12 @@ func (UploadDenied) Serialize(filename string, reason error) ([]byte, error) {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, filename)
+	err = internal.WriteString(buf, message.Filename)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, reason.Error())
+	err = internal.WriteString(buf, message.Reason.Error())
 	if err != nil {
 		return nil, err
 	}

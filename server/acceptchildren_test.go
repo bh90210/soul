@@ -12,7 +12,8 @@ func TestAcceptChildren(t *testing.T) {
 	t.Parallel()
 
 	acceptChildren := new(AcceptChildren)
-	message, err := acceptChildren.Serialize(true)
+	acceptChildren.Accept = true
+	message, err := acceptChildren.Serialize(acceptChildren)
 	assert.NoError(t, err)
 	assert.NotNil(t, message)
 

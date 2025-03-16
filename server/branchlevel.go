@@ -8,16 +8,18 @@ import (
 
 const CodeBranchLevel Code = 126
 
-type BranchLevel struct{}
+type BranchLevel struct {
+	Level int
+}
 
-func (BranchLevel) Serialize(level int) ([]byte, error) {
+func (b *BranchLevel) Serialize(message *BranchLevel) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeBranchLevel))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(level))
+	err = internal.WriteUint32(buf, uint32(message.Level))
 	if err != nil {
 		return nil, err
 	}

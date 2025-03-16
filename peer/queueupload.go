@@ -19,7 +19,7 @@ type QueueUpload struct {
 	Filename string
 }
 
-func (QueueUpload) Serialize(filename string) ([]byte, error) {
+func (q *QueueUpload) Serialize(message *QueueUpload) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	err := internal.WriteUint32(buf, uint32(CodeQueueUpload))
@@ -27,7 +27,7 @@ func (QueueUpload) Serialize(filename string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, filename)
+	err = internal.WriteString(buf, message.Filename)
 	if err != nil {
 		return nil, err
 	}

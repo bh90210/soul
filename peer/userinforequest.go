@@ -14,7 +14,7 @@ const CodeUserInfoRequest Code = 15
 
 type UserInfoRequest struct{}
 
-func (UserInfoRequest) Serialize() ([]byte, error) {
+func (u *UserInfoRequest) Serialize(_ *UserInfoRequest) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeUserInfoRequest))
 	if err != nil {

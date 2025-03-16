@@ -21,14 +21,14 @@ type BranchLevel struct {
 }
 
 // Serialize accepts a branch level and returns a message packed as a byte slice.
-func (BranchLevel) Serialize(branchLevel int32) ([]byte, error) {
+func (b *BranchLevel) Serialize(message *BranchLevel) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodeBranchLevel))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteInt32(buf, branchLevel)
+	err = internal.WriteInt32(buf, message.Level)
 	if err != nil {
 		return nil, err
 	}

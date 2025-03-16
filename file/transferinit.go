@@ -15,10 +15,10 @@ type TransferInit struct {
 }
 
 // Serialize accepts a token and returns a message packed as a byte slice.
-func (TransferInit) Serialize(token soul.Token) ([]byte, error) {
+func (t *TransferInit) Serialize(message *TransferInit) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	err := internal.WriteUint32(buf, uint32(token))
+	err := internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}

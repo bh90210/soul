@@ -19,6 +19,9 @@ const CodeLogin Code = 1
 // Login code 1 is the message we get from the server when trying to login.
 // It can either be a success or a failure.
 type Login struct {
+	Username string
+	Password string
+
 	Greet string
 	IP    net.IP
 	Sum   string
@@ -29,19 +32,19 @@ type Login struct {
 // the sum of the username and password and append it to the buffer. Finally, it will
 // append the major and minor version of the protocol to the buffer and return the
 // buffer as a byte array.
-func (l Login) Serialize(username string, password string) ([]byte, error) {
+func (l *Login) Serialize(message *Login) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeLogin))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, password)
+	err = internal.WriteString(buf, message.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +54,7 @@ func (l Login) Serialize(username string, password string) ([]byte, error) {
 		return nil, err
 	}
 
-	s, err := sum(username, password)
+	s, err := sum(message.Username, message.Password)
 	if err != nil {
 		return nil, err
 	}

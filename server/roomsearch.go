@@ -9,26 +9,30 @@ import (
 
 const CodeRoomSearch Code = 120
 
-type RoomSearch struct{}
+type RoomSearch struct {
+	Room        string
+	Token       soul.Token
+	SearchQuery string
+}
 
-func (r RoomSearch) Serialize(room string, token soul.Token, searchQuery string) ([]byte, error) {
+func (r *RoomSearch) Serialize(message *RoomSearch) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeRoomSearch))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, room)
+	err = internal.WriteString(buf, message.Room)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, searchQuery)
+	err = internal.WriteString(buf, message.SearchQuery)
 	if err != nil {
 		return nil, err
 	}

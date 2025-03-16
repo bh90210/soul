@@ -8,16 +8,18 @@ import (
 
 const CodeSendUploadSpeed Code = 121
 
-type SendUploadSpeed struct{}
+type SendUploadSpeed struct {
+	Speed int
+}
 
-func (s SendUploadSpeed) Serialize(speed int) ([]byte, error) {
+func (s *SendUploadSpeed) Serialize(message *SendUploadSpeed) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeSendUploadSpeed))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(speed))
+	err = internal.WriteUint32(buf, uint32(message.Speed))
 	if err != nil {
 		return nil, err
 	}

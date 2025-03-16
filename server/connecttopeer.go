@@ -23,24 +23,24 @@ type ConnectToPeer struct {
 	ObfuscatedPort int
 }
 
-func (ConnectToPeer) Serialize(token soul.Token, username string, connType soul.ConnectionType) ([]byte, error) {
+func (c *ConnectToPeer) Serialize(message *ConnectToPeer) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeConnectToPeer))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, string(connType))
+	err = internal.WriteString(buf, string(message.Type))
 	if err != nil {
 		return nil, err
 	}

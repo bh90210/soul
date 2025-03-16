@@ -19,14 +19,14 @@ type PierceFirewall struct {
 	Token soul.Token
 }
 
-func (PierceFirewall) Serialize(token soul.Token) ([]byte, error) {
+func (p *PierceFirewall) Serialize(message *PierceFirewall) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodePierceFirewall))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}

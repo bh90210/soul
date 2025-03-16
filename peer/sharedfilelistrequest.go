@@ -14,7 +14,7 @@ const CodeSharedFileListRequest Code = 4
 
 type SharedFileListRequest struct{}
 
-func (SharedFileListRequest) Serialize() ([]byte, error) {
+func (s *SharedFileListRequest) Serialize(_ *SharedFileListRequest) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeSharedFileListRequest))
 	if err != nil {

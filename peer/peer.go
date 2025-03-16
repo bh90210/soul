@@ -122,14 +122,14 @@ func Reason(reason string) error {
 	}
 }
 
-func MessageRead[C CodeInit | Code](c C, connection net.Conn) (io.Reader, int, C, error) {
+func Read[C CodeInit | Code](c C, connection net.Conn, obfuscated bool) (io.Reader, int, C, error) {
 	switch any(c).(type) {
 	case CodeInit:
-		r, s, code, err := internal.MessageRead(internal.CodePeerInit(0), connection)
+		r, s, code, err := internal.MessageRead(internal.CodePeerInit(0), connection, obfuscated)
 		return r, s, C(code), err
 
 	case Code:
-		r, s, code, err := internal.MessageRead(internal.CodePeer(0), connection)
+		r, s, code, err := internal.MessageRead(internal.CodePeer(0), connection, obfuscated)
 		return r, s, C(code), err
 
 	default:
@@ -137,6 +137,31 @@ func MessageRead[C CodeInit | Code](c C, connection net.Conn) (io.Reader, int, C
 	}
 }
 
-func MessageWrite(connection net.Conn, message []byte) (int, error) {
-	return internal.MessageWrite(connection, message)
+type message[M any] interface {
+	*PeerInit |
+		*PierceFirewall |
+		*FileSearchResponse |
+		*FolderContentsRequest |
+		*FolderContentsResponse |
+		*PlaceInQueueRequest |
+		*PlaceInQueueResponse |
+		*QueueUpload |
+		*SharedFileListRequest |
+		*SharedFileListResponse |
+		*TransferRequest |
+		*TransferResponse |
+		*UploadDenied |
+		*UploadFailed |
+		*UserInfoRequest |
+		*UserInfoResponse
+	Serialize(M) ([]byte, error)
+}
+
+func Write[M message[M]](connection net.Conn, message M, obfuscate bool) (int, error) {
+	m, err := message.Serialize(message)
+	if err != nil {
+		return 0, err
+	}
+
+	return internal.MessageWrite(connection, m, obfuscate)
 }

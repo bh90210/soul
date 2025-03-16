@@ -8,28 +8,31 @@ import (
 
 const CodeMessageUsers Code = 149
 
-type MessageUsers struct{}
+type MessageUsers struct {
+	Usernames []string
+	Message   string
+}
 
-func (m MessageUsers) Serialize(usernames []string, message string) ([]byte, error) {
+func (m *MessageUsers) Serialize(message *MessageUsers) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeMessageUsers))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(len(usernames)))
+	err = internal.WriteUint32(buf, uint32(len(message.Usernames)))
 	if err != nil {
 		return nil, err
 	}
 
-	for _, username := range usernames {
+	for _, username := range message.Usernames {
 		err = internal.WriteString(buf, username)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = internal.WriteString(buf, message)
+	err = internal.WriteString(buf, message.Message)
 	if err != nil {
 		return nil, err
 	}

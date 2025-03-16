@@ -3,6 +3,7 @@ package internal
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"io"
 	"net"
 	"sync"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/bh90210/soul"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMessageRead(t *testing.T) {
@@ -40,7 +42,7 @@ func TestMessageRead(t *testing.T) {
 
 		}()
 
-		r, size, code, err := MessageRead(CodePeerInit(0), client)
+		r, size, code, err := MessageRead(CodePeerInit(0), client, false)
 		assert.NoError(t, err)
 		assert.Equal(t, 5, size)
 		assert.Equal(t, CodePeerInit(0), code)
@@ -84,7 +86,7 @@ func TestMessageRead(t *testing.T) {
 			assert.Equal(t, 12, n)
 		}()
 
-		r, size, code, err := MessageRead(CodeServer(0), client)
+		r, size, code, err := MessageRead(CodeServer(0), client, false)
 		assert.NoError(t, err)
 		assert.Equal(t, 8, size)
 		assert.Equal(t, CodeServer(0), code)
@@ -123,7 +125,7 @@ func TestMessageWrite(t *testing.T) {
 		assert.Equal(t, []byte{1}, buf)
 	}()
 
-	n, err := MessageWrite(client, []byte{1})
+	n, err := MessageWrite(client, []byte{1}, false)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, n)
 
@@ -391,4 +393,39 @@ func TestReadIP(t *testing.T) {
 
 	actual := ReadIP(1)
 	assert.Equal(t, net.IP{0, 0, 0, 1}, actual)
+}
+
+func TestDeobfuscateN(t *testing.T) {
+	t.Parallel()
+
+	original, err := hex.DecodeString("0800000079000000e8030000")
+	assert.NoError(t, err)
+
+	hexed, err := hex.DecodeString("1494ee4a2028dd952850ba2b4aa37457")
+	assert.NoError(t, err)
+
+	buf := bytes.NewReader(hexed)
+	r, err := deobfuscateN(buf, int64(len(original)))
+	assert.NoError(t, err)
+	assert.NotNil(t, r)
+
+	assert.Equal(t, original, r.Bytes())
+}
+
+func TestObfuscate(t *testing.T) {
+	t.Parallel()
+
+	original, err := hex.DecodeString("0800000079000000e8030000")
+	assert.NoError(t, err)
+
+	obfuscated, err := obfuscate(original)
+	assert.NoError(t, err)
+
+	buf := bytes.NewReader(obfuscated)
+
+	r, err := deobfuscateN(buf, int64(len(original)))
+	require.NoError(t, err)
+	assert.NotNil(t, r)
+
+	assert.Equal(t, original, r.Bytes())
 }

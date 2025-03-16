@@ -49,7 +49,7 @@ type Attribute struct {
 // - ErrSizeZero is returned when the file size is zero.
 // - ErrEmptyFileExtension is returned when the file extension is empty.
 // You can use them in your code to check for specific errors.
-func (s SharedFileListResponse) Serialize(directories, privateDirectories []Directory) ([]byte, error) {
+func (s *SharedFileListResponse) Serialize(message *SharedFileListResponse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeSharedFileListResponse))
 	if err != nil {
@@ -58,7 +58,7 @@ func (s SharedFileListResponse) Serialize(directories, privateDirectories []Dire
 
 	zw := zlib.NewWriter(buf)
 
-	err = s.walkWrite(directories, zw)
+	err = s.walkWrite(message.Directories, zw)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (s SharedFileListResponse) Serialize(directories, privateDirectories []Dire
 		return nil, err
 	}
 
-	err = s.walkWrite(privateDirectories, zw)
+	err = s.walkWrite(message.PrivateDirectories, zw)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +232,7 @@ func (s *SharedFileListResponse) Deserialize(reader io.Reader) error {
 }
 
 func (s *SharedFileListResponse) walkRead(numberOfDirectories uint32, zr io.ReadCloser) (directories []Directory, err error) {
-	for i := 0; i < int(numberOfDirectories); i++ {
+	for range int(numberOfDirectories) {
 		var directory Directory
 		var err error
 
@@ -246,7 +246,7 @@ func (s *SharedFileListResponse) walkRead(numberOfDirectories uint32, zr io.Read
 			return nil, err
 		}
 
-		for j := 0; j < int(files); j++ {
+		for range int(files) {
 			var f File
 
 			_, err := internal.ReadUint8(zr)
@@ -274,7 +274,7 @@ func (s *SharedFileListResponse) walkRead(numberOfDirectories uint32, zr io.Read
 				return nil, err
 			}
 
-			for k := 0; k < int(attributes); k++ {
+			for range int(attributes) {
 				var a Attribute
 
 				code, err := internal.ReadUint32(zr)

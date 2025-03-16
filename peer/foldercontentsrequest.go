@@ -18,19 +18,19 @@ type FolderContentsRequest struct {
 	Folder string
 }
 
-func (FolderContentsRequest) Serialize(token soul.Token, folder string) ([]byte, error) {
+func (f *FolderContentsRequest) Serialize(message *FolderContentsRequest) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeFolderContentsRequest))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, folder)
+	err = internal.WriteString(buf, message.Folder)
 	if err != nil {
 		return nil, err
 	}

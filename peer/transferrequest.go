@@ -26,7 +26,7 @@ type TransferRequest struct {
 	FileSize  uint64
 }
 
-func (TransferRequest) Serialize(direction TransferDirection, token soul.Token, filename string, filesize uint64) ([]byte, error) {
+func (t *TransferRequest) Serialize(message *TransferRequest) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	err := internal.WriteUint32(buf, uint32(CodeTransferRequest))
@@ -34,23 +34,23 @@ func (TransferRequest) Serialize(direction TransferDirection, token soul.Token, 
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(direction))
+	err = internal.WriteUint32(buf, uint32(message.Direction))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(token))
+	err = internal.WriteUint32(buf, uint32(message.Token))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, filename)
+	err = internal.WriteString(buf, message.Filename)
 	if err != nil {
 		return nil, err
 	}
 
-	if direction == UploadToPeer {
-		err = internal.WriteUint64(buf, filesize)
+	if message.Direction == UploadToPeer {
+		err = internal.WriteUint64(buf, message.FileSize)
 		if err != nil {
 			return nil, err
 		}

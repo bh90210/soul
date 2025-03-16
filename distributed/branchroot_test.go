@@ -11,7 +11,8 @@ func TestBranchRoot(t *testing.T) {
 	t.Parallel()
 
 	branchRoot := new(BranchRoot)
-	message, err := branchRoot.Serialize("test")
+	branchRoot.Root = "test"
+	message, err := branchRoot.Serialize(branchRoot)
 	assert.NoError(t, err)
 	assert.NotNil(t, message)
 

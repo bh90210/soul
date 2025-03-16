@@ -8,16 +8,18 @@ import (
 
 const CodeBranchRoot Code = 127
 
-type BranchRoot struct{}
+type BranchRoot struct {
+	Root string
+}
 
-func (BranchRoot) Serialize(root string) ([]byte, error) {
+func (b *BranchRoot) Serialize(message *BranchRoot) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeBranchRoot))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, root)
+	err = internal.WriteString(buf, message.Root)
 	if err != nil {
 		return nil, err
 	}

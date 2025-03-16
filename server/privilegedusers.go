@@ -36,7 +36,7 @@ func (p *PrivilegedUsers) Deserialize(reader io.Reader) (err error) {
 		return
 	}
 
-	for i := 0; i < int(numberOfUsers); i++ {
+	for range int(numberOfUsers) {
 		var user string
 		user, err = internal.ReadString(reader)
 		if err != nil && !errors.Is(err, io.EOF) {

@@ -3,6 +3,7 @@ package internal
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -42,7 +43,7 @@ type Code interface {
 // MessageRead reads a message from the connection. It reads the size of the message
 // and the code of the message. It then reads the message from the connection and
 // returns the message, the size of the message, the code of the message and an error.
-func MessageRead[C Code](c C, connection net.Conn) (*bytes.Buffer, int, C, error) {
+func MessageRead[C Code](c C, connection net.Conn, obfuscated bool) (*bytes.Buffer, int, C, error) {
 	message := new(bytes.Buffer)
 
 	// We need to make two reads from the connection to determine the code of the message.
@@ -51,27 +52,81 @@ func MessageRead[C Code](c C, connection net.Conn) (*bytes.Buffer, int, C, error
 	// from the "head" of the packet.
 	messageHeader := io.TeeReader(connection, message)
 
+	// All documentation about obfuscation is coming from the good people of https://aioslsk.readthedocs.io/en/latest/SOULSEEK.html#obfuscation.
 	// Read the size of the packet.
-	size, err := ReadUint32(messageHeader)
-	if err != nil {
-		return nil, 0, 0, err
+	var size uint32
+	var err error
+	if obfuscated {
+		// We need to deobfuscate the size, which is the first packet of the message with a size of 4 bytes.
+		deobfuscated, err := teeDeobfuscateN(connection, message, 4)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+
+		size, err = ReadUint32(deobfuscated)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+	} else {
+		size, err = ReadUint32(messageHeader)
+		if err != nil {
+			return nil, 0, 0, err
+		}
 	}
 
 	// Read the code of the message.
 	var code C
-	var readAlready int
+	var readAlready int64
 	switch any(c).(type) {
-	case CodePeerInit, CodeDistributed:
-		c, err := ReadUint8(messageHeader)
-		if err != nil {
-			return nil, 0, 0, err
+	case CodePeerInit:
+		var c uint8
+		if obfuscated {
+			deobfuscated, err := teeDeobfuscateN(connection, message, 1)
+			if err != nil {
+				return nil, 0, 0, err
+			}
+
+			c, err = ReadUint8(deobfuscated)
+			if err != nil {
+				return nil, 0, 0, err
+			}
+
+		} else {
+			c, err = ReadUint8(messageHeader)
+			if err != nil {
+				return nil, 0, 0, err
+			}
 		}
 
 		code = C(c)
 
 		readAlready = 1
 
-	case CodeServer, CodePeer:
+	case CodePeer:
+		var c uint32
+		if obfuscated {
+			deobfuscated, err := teeDeobfuscateN(message, connection, 4)
+			if err != nil {
+				return nil, 0, 0, err
+			}
+
+			c, err = ReadUint32(deobfuscated)
+			if err != nil {
+				return nil, 0, 0, err
+			}
+
+		} else {
+			c, err = ReadUint32(messageHeader)
+			if err != nil {
+				return nil, 0, 0, err
+			}
+		}
+
+		code = C(c)
+
+		readAlready = 4
+
+	case CodeServer:
 		c, err := ReadUint32(messageHeader)
 		if err != nil {
 			return nil, 0, 0, err
@@ -80,20 +135,39 @@ func MessageRead[C Code](c C, connection net.Conn) (*bytes.Buffer, int, C, error
 		code = C(c)
 
 		readAlready = 4
+
+	case CodeDistributed:
+		c, err := ReadUint8(messageHeader)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+
+		code = C(c)
+
+		readAlready = 1
 	}
 
 	// Now we simply copy a packet size read from the connection to the message buffer.
 	// This continues writing the message buffer from where the TeeReader left off.
 	// The size of the actual message read needs -4 to account for the packet
 	// size and code reads that happened above.
-	n, err := io.CopyN(message, connection, int64(size)-int64(readAlready))
-	if err != nil {
-		return nil, 0, 0, err
+	var n int64
+	if obfuscated {
+		n, err = copyDeobfuscateN(message, connection, int64(size)-int64(readAlready))
+		if err != nil {
+			return nil, 0, 0, err
+		}
+
+	} else {
+		n, err = io.CopyN(message, connection, int64(size)-int64(readAlready))
+		if err != nil {
+			return nil, 0, 0, err
+		}
 	}
 
 	// Conversely, we need to add 4 to the size of the total read to account for the
 	// size and code reads that are missing from CopyN.
-	n += int64(readAlready)
+	n += readAlready
 
 	if int64(size) != n {
 		return nil, 0, 0, soul.ErrDifferentPacketSize
@@ -102,15 +176,206 @@ func MessageRead[C Code](c C, connection net.Conn) (*bytes.Buffer, int, C, error
 	return message, int(size), code, nil
 }
 
+func copyDeobfuscateN(message io.Writer, connection io.Reader, n int64) (int64, error) {
+	deobfuscated, err := deobfuscateN(connection, n)
+	if err != nil {
+		return 0, err
+	}
+
+	return io.CopyN(message, deobfuscated, n)
+}
+
+func teeDeobfuscateN(message io.Writer, connection io.Reader, n int64) (io.Reader, error) {
+	deobfuscated, err := deobfuscateN(connection, n)
+	if err != nil {
+		return nil, err
+	}
+
+	return io.TeeReader(deobfuscated, message), nil
+}
+
+func deobfuscateN(connection io.Reader, n int64) (*bytes.Buffer, error) {
+	deobfuscated := new(bytes.Buffer)
+
+	// Key is the first 4 bytes of the message in little-endian.
+	key := new(bytes.Buffer)
+
+	// Directly read from the connection to the key buffer.
+	i, err := io.CopyN(key, connection, 4)
+	if err != nil {
+		return nil, err
+	}
+
+	if i != 4 {
+		return nil, soul.ErrDifferentPacketSize
+	}
+
+	var readSoFar int64
+	for {
+		// Convert it to big-endian integer.
+		var bigKey uint32
+		err = binary.Read(key, binary.LittleEndian, &bigKey)
+		if err != nil {
+			return nil, err
+		}
+
+		// Shift 31 bits to the right.
+		bigKey = (bigKey >> 31) | (bigKey << (32 - 31))
+
+		// Convert back to little-endian byte array.
+		rotatedKey := new(bytes.Buffer)
+		err = binary.Write(rotatedKey, binary.LittleEndian, bigKey)
+		if err != nil {
+			return nil, err
+		}
+
+		// Read next 4 bytes of the actual message from the connection.
+		next4bytes := new(bytes.Buffer)
+		i, err := io.CopyN(next4bytes, connection, 4)
+		if err != nil {
+			return nil, err
+		}
+
+		// Track how many bytes we have read so far.
+		readSoFar += i
+
+		key.Reset()
+		deobfuscated4bytes := new(bytes.Buffer)
+		// XOR 4 bytes of the message with the 4 bytes of the rotated key.
+		for o := range i {
+			b, err := rotatedKey.ReadByte()
+			if err != nil {
+				return nil, err
+			}
+
+			// We construct the new key while reading it for XOR.
+			err = key.WriteByte(b)
+			if err != nil {
+				return nil, err
+			}
+
+			b ^= next4bytes.Bytes()[o]
+			deobfuscated4bytes.WriteByte(b)
+		}
+
+		// Write the deobfuscated 4 bytes to the deobfuscated message buffer.
+		deobfuscated.Write(deobfuscated4bytes.Bytes())
+
+		if readSoFar == n {
+			break
+		}
+	}
+
+	return deobfuscated, nil
+}
+
 // MessageWrite writes a message to the connection. It writes the message to the connection
 // and returns the number of bytes written and an error.
-func MessageWrite(connection net.Conn, message []byte) (int, error) {
+func MessageWrite(connection net.Conn, message []byte, obfuscated bool) (int, error) {
+	if obfuscated {
+		var err error
+		message, err = obfuscate(message)
+		if err != nil {
+			return 0, err
+		}
+	}
+
 	n, err := connection.Write(message)
 	if err != nil {
 		return 0, err
 	}
 
 	return n, nil
+}
+
+func obfuscate(message []byte) ([]byte, error) {
+	obfuscated := new(bytes.Buffer)
+
+	var key [4]byte
+	n, err := rand.Read(key[:])
+	if err != nil {
+		return nil, err
+	}
+
+	if n != 4 {
+		return nil, errors.New("could not read enough bytes for the key")
+	}
+
+	// Write the key to the obfuscated message.
+	n, err = obfuscated.Write(key[:])
+	if err != nil {
+		return nil, err
+	}
+
+	if n != 4 {
+		return nil, errors.New("could not write enough bytes for the obfuscated key")
+	}
+
+	bufferedKey := new(bytes.Buffer)
+	n, err = bufferedKey.Write(key[:])
+	if err != nil {
+		return nil, err
+	}
+
+	if n != 4 {
+		return nil, errors.New("could not write enough bytes for the buffered key")
+	}
+
+	rotatedKey, err := rotateKey(bufferedKey)
+	if err != nil {
+		return nil, err
+	}
+
+	newKey := new(bytes.Buffer)
+	for k, v := range message {
+		b, err := rotatedKey.ReadByte()
+		if err != nil {
+			return nil, err
+		}
+
+		// We construct the new key while reading the previous one for XOR.
+		err = newKey.WriteByte(b)
+		if err != nil {
+			return nil, err
+		}
+
+		err = obfuscated.WriteByte(b ^ v)
+		if err != nil {
+			return nil, err
+		}
+
+		// We reached the 4 byte boundary.
+		// Now we must rotate the key.
+		if k%4 == 3 {
+			rotatedKey, err = rotateKey(newKey)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return obfuscated.Bytes(), nil
+}
+
+func rotateKey(key *bytes.Buffer) (*bytes.Buffer, error) {
+	// Convert it to endian integer.
+	var bigKey uint32
+	err := binary.Read(key, binary.LittleEndian, &bigKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// Shift 31 bits to the right.
+	bigKey = (bigKey >> 31) | (bigKey << (32 - 31))
+
+	// Convert back to little-endian byte array.
+	rotatedKey := new(bytes.Buffer)
+	err = binary.Write(rotatedKey, binary.LittleEndian, bigKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return rotatedKey, nil
 }
 
 // Pack packs the data into a byte slice. It writes the size of the data and the data

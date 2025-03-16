@@ -26,7 +26,7 @@ type FileSearchResponse struct {
 }
 
 // Serialize accepts a FileSearchResponse and returns a message packed as a byte slice.
-func (f FileSearchResponse) Serialize(fs FileSearchResponse) ([]byte, error) {
+func (f *FileSearchResponse) Serialize(fs FileSearchResponse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeFileSearchResponse))
 	if err != nil {

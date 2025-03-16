@@ -16,7 +16,7 @@ type CheckPrivileges struct {
 	TimeLeft int
 }
 
-func (CheckPrivileges) Serialize() ([]byte, error) {
+func (c *CheckPrivileges) Serialize(_ *CheckPrivileges) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeCheckPrivileges))
 	if err != nil {

@@ -19,7 +19,7 @@ type PlaceInQueueResponse struct {
 	Place    uint32
 }
 
-func (PlaceInQueueResponse) Serialize(filename string, place uint32) ([]byte, error) {
+func (p *PlaceInQueueResponse) Serialize(message *PlaceInQueueResponse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	err := internal.WriteUint32(buf, uint32(CodePlaceInQueueResponse))
@@ -27,12 +27,12 @@ func (PlaceInQueueResponse) Serialize(filename string, place uint32) ([]byte, er
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, filename)
+	err = internal.WriteString(buf, message.Filename)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, place)
+	err = internal.WriteUint32(buf, message.Place)
 	if err != nil {
 		return nil, err
 	}

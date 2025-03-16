@@ -14,7 +14,10 @@ func TestSearch(t *testing.T) {
 	token := soul.NewToken()
 
 	search := new(Search)
-	message, err := search.Serialize(token, "test", "query")
+	search.Token = token
+	search.Username = "test"
+	search.Query = "query"
+	message, err := search.Serialize(search)
 	assert.NoError(t, err)
 	assert.NotNil(t, message)
 

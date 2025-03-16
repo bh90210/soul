@@ -8,21 +8,24 @@ import (
 
 const CodeGivePrivileges Code = 123
 
-type GivePrivileges struct{}
+type GivePrivileges struct {
+	Username string
+	Days     int
+}
 
-func (g GivePrivileges) Serialize(username string, days int) ([]byte, error) {
+func (g *GivePrivileges) Serialize(message *GivePrivileges) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeGivePrivileges))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteUint32(buf, uint32(days))
+	err = internal.WriteUint32(buf, uint32(message.Days))
 	if err != nil {
 		return nil, err
 	}

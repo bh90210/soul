@@ -8,16 +8,18 @@ import (
 
 const CodeUnwatchUser Code = 6
 
-type UnwatchUser struct{}
+type UnwatchUser struct {
+	Username string
+}
 
-func (u UnwatchUser) Serialize(username string) ([]byte, error) {
+func (u *UnwatchUser) Serialize(message *UnwatchUser) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeUnwatchUser))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}

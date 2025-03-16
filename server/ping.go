@@ -10,7 +10,7 @@ const CodePing Code = 32
 
 type Ping struct{}
 
-func (p Ping) Serialize() ([]byte, error) {
+func (p *Ping) Serialize(_ *Ping) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodePing))
 	if err != nil {

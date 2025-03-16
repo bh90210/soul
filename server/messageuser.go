@@ -20,19 +20,19 @@ type MessageUser struct {
 	New       bool
 }
 
-func (m MessageUser) Serialize(username, message string) ([]byte, error) {
+func (m *MessageUser) Serialize(message *MessageUser) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeMessageUser))
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, username)
+	err = internal.WriteString(buf, message.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	err = internal.WriteString(buf, message)
+	err = internal.WriteString(buf, message.Message)
 	if err != nil {
 		return nil, err
 	}
