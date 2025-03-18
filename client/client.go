@@ -23,7 +23,7 @@ import (
 type Client struct {
 	// Relays contains all possible server messages the client will deserialize and notify.
 	Relays serverRelays
-	// firewallTokens is a map of incoming Firewall tokens and connections.
+	// Firewall chan *PierceFirewall
 	Firewall chan *PierceFirewall
 	// Init initiates a connection with a peer. Consumers will receive a deserialized peer.PeerInit message.
 	Init chan *PeerInit
@@ -59,39 +59,41 @@ type PeerInit struct {
 }
 
 type Config struct {
-	SoulSeekAddress           string
-	SoulSeekPort              int
-	OwnHostname               string
-	OwnPort                   int
-	OwnObfuscatedPort         int
-	Username                  string
-	Password                  string
-	SharedFolders             int
-	SharedFiles               int
-	LogLevel                  zerolog.Level
-	Timeout                   time.Duration
-	LoginTimeout              time.Duration
-	DownloadFolder            string
-	MaxPeers                  int64
-	MaxFileConnections        int
-	MaxDistributedConnections int
+	SoulSeekAddress    string
+	SoulSeekPort       int
+	OwnHostname        string
+	OwnPort            int
+	OwnObfuscatedPort  int
+	Username           string
+	Password           string
+	SharedFolders      int
+	SharedFiles        int
+	LogLevel           zerolog.Level
+	Timeout            time.Duration
+	LoginTimeout       time.Duration
+	DownloadFolder     string
+	MaxPeers           int64
+	MaxFileConnections int64
+	AcceptChildren     bool
+	MaxChildren        int
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		SoulSeekAddress:           "server.slsknet.org",
-		SoulSeekPort:              2242,
-		OwnHostname:               "localhost",
-		OwnPort:                   2234,
-		Username:                  gonanoid.MustGenerate("soulseek", 7),
-		Password:                  gonanoid.MustGenerate("0123456789qwertyuiop", 10),
-		LogLevel:                  zerolog.Disabled,
-		Timeout:                   2 * time.Second,
-		LoginTimeout:              3 * time.Second,
-		DownloadFolder:            os.TempDir(),
-		MaxPeers:                  400,
-		MaxFileConnections:        20,
-		MaxDistributedConnections: 50,
+		SoulSeekAddress:    "server.slsknet.org",
+		SoulSeekPort:       2242,
+		OwnHostname:        "localhost",
+		OwnPort:            2234,
+		Username:           gonanoid.MustGenerate("soulseek", 7),
+		Password:           gonanoid.MustGenerate("0123456789qwertyuiop", 10),
+		LogLevel:           zerolog.Disabled,
+		Timeout:            2 * time.Second,
+		LoginTimeout:       3 * time.Second,
+		DownloadFolder:     os.TempDir(),
+		MaxPeers:           100,
+		MaxFileConnections: 20,
+		MaxChildren:        50,
+		AcceptChildren:     true,
 	}
 }
 
@@ -790,9 +792,13 @@ func (c *Client) deserialize() {
 				case server.CodeWatchUser:
 					m := new(server.WatchUser)
 					err := m.Deserialize(r)
-					if err != nil && !errors.Is(err, io.EOF) {
+					if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 						c.log.Err(err).Msg("watch user deserialize")
 						return
+					}
+
+					if errors.Is(err, io.ErrUnexpectedEOF) {
+						c.log.Warn().Str("error", err.Error()).Msg("watch user deserialize")
 					}
 
 					c.Relays.WatchUser.NotifyCtx(ctx, m)

@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/bh90210/soul"
 	"github.com/bh90210/soul/distributed"
@@ -79,7 +78,7 @@ func (p *Peer) New(connType soul.ConnectionType, conn net.Conn, obfuscated bool)
 		p.log = log.With().Str("username", p.username).Bool("obfuscated", obfuscated).Logger()
 
 		if p.cancel != nil {
-			go p.cancel()
+			p.cancel()
 		}
 
 		p.conn = conn
@@ -90,10 +89,15 @@ func (p *Peer) New(connType soul.ConnectionType, conn net.Conn, obfuscated bool)
 		go p.read(p.ctx, obfuscated)
 		go p.deserialize(p.ctx)
 
+		go func() {
+			<-p.ctx.Done()
+			p.conn.Close()
+		}()
+
 	case distributed.ConnectionType:
 		p.mu.Lock()
 		if p.cancelD != nil {
-			go p.cancelD()
+			p.cancelD()
 		}
 
 		p.connD = conn
@@ -101,6 +105,12 @@ func (p *Peer) New(connType soul.ConnectionType, conn net.Conn, obfuscated bool)
 		p.mu.Unlock()
 
 		go p.readD(p.ctxD)
+		go p.deserializeD(p.ctxD)
+
+		go func() {
+			<-p.ctxD.Done()
+			p.connD.Close()
+		}()
 
 	case file.ConnectionType:
 		init := new(file.TransferInit)
@@ -191,19 +201,27 @@ func (p *Peer) readD(ctx context.Context) {
 
 		default:
 			p.mu.RLock()
-			r, _, code, err := distributed.Read(p.connD)
+			r, size, code, err := distributed.Read(p.connD)
 			p.mu.RUnlock()
 			if err != nil && !errors.Is(err, io.EOF) {
 				if errors.Is(err, net.ErrClosed) {
-					time.Sleep(time.Second) // TODO: check if this is necessary
-					continue
+					p.mu.RLock()
+					go p.cancelD()
+					p.mu.RUnlock()
+					return
 				}
 
 				p.log.Error().Err(err).Msg("distributed read")
 				continue
 			}
 
-			p.log.Debug().Str("code", code.String()).Msg("distributed read")
+			if code == distributed.Code(0) && size == 0 {
+				p.mu.RLock()
+				go p.cancelD()
+				p.mu.RUnlock()
+				continue
+			}
+
 			p.queueD <- map[distributed.Code]io.Reader{distributed.Code(code): r}
 		}
 	}
@@ -364,6 +382,15 @@ func (p *Peer) deserialize(ctx context.Context) {
 					}
 				}
 			}(m)
+		}
+	}
+}
+
+func (p *Peer) deserializeD(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
 
 		case m := <-p.queueD:
 			go func(m map[distributed.Code]io.Reader) {

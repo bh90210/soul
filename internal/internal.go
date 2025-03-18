@@ -185,6 +185,7 @@ func copyDeobfuscateN(message io.Writer, connection io.Reader, n int64) (int64, 
 	return io.CopyN(message, deobfuscated, n)
 }
 
+// TODO: make it a proper tee, drop the n and make it read as much as the consumer does.
 func teeDeobfuscateN(message io.Writer, connection io.Reader, n int64) (io.Reader, error) {
 	deobfuscated, err := deobfuscateN(connection, n)
 	if err != nil {
@@ -280,12 +281,7 @@ func MessageWrite(connection net.Conn, message []byte, obfuscated bool) (int, er
 		}
 	}
 
-	n, err := connection.Write(message)
-	if err != nil {
-		return 0, err
-	}
-
-	return n, nil
+	return connection.Write(message)
 }
 
 func obfuscate(message []byte) ([]byte, error) {

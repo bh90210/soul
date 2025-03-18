@@ -61,13 +61,15 @@ func main() {
 
 ## Client
 
-To successfully make use of the network, you will need certain procedures involving multiple types of connections at once. Under `client` package you will find the most common actions a client will probably make (login, search, download, participation in the distributed network and API for responding to search quests and uploads.) If like me your goal is to make a CLI, preferably one that will run on a server rather than a desktop and used as a library inside other Go software, then client code in the `client` package can be potentially useful as is, albeit incomplete (no file indexing/management, no database for state etc, yes PRs are still very welcome!)
+To successfully make use of the network, you will need certain procedures involving multiple types of connections at once. Under `client` package you will find the most common actions a client will probably make (login, search, download, participation in the distributed network and API for responding to search requests and uploads.) If like me your goal is to make a CLI, preferably one that will run on a server rather than a desktop and used as a library inside other Go software, then client code in the `client` package can be potentially useful as is, albeit incomplete (no file indexing/management, no database for state etc, yes PRs are still very welcome!)
 
-### Client, Peer & State
+### Client & Peer
 
-The methods of _Client_ and _Peer_ structs are purposefully small and simple. Both provide a `Relays` field that can produce listeners for all incoming messages. This can potentially be your point of departure. Using _Client_ and _Peer_ and come up with your own state solution. Except bug fixes the intention is for those structs/API to remain dormant.
+The methods of _Client_ and _Peer_ structs are purposefully small and simple. Both provide a `Relays` field that can produce listeners for all incoming messages. Think of them as an http router. This can potentially be your point of departure. Use _Client_ and _Peer_ and come up with your own state solution. Except bug fixes the intention is for those structs/API to remain dormant.
 
-_State_ struct is where the "business logic" lives. Besides the API it provides, once connected to SoulSeek in the background it will take care of the distributed network and responding to peer and server requests.
+### State
+
+_State_ struct is where the "business logic" lives. Besides the public methods it provides, once connected to SoulSeek in the background it will take care of the distributed network and responding to peer and server requests.
 
 ## Tests
 
@@ -89,13 +91,9 @@ If this library was not what you were looking for consider checking out [spotsee
 
 
 # TODO
-- [ ] finish state download function
-- [ ] finish state distributed support
-- [ ] implement state limits
-- [ ] extend/implement config
-- [ ] incoming search/file requests via state
 - [ ] finish peer tests + documentation
 - [ ] finish server tests + documentation
 - [ ] client integration tests
+- [ ] incoming search/file requests via state (distributed+server)
 - [ ] search code for outstanding TODOs
 - [ ] release v1.1.1
