@@ -25,7 +25,7 @@ type Code int
 // returns the message, the size of the message, the code of the message and an error.
 func Read(connection net.Conn) (io.Reader, int, Code, error) {
 	r, s, c, err := internal.MessageRead(internal.CodeDistributed(0), connection, false)
-	return r, s, Code(c), err
+	return r, int(s), Code(c), err
 }
 
 // message writes a message to a distributed connection. It writes the size of the message

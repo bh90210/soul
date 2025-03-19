@@ -126,11 +126,11 @@ func Read[C CodeInit | Code](c C, connection net.Conn, obfuscated bool) (io.Read
 	switch any(c).(type) {
 	case CodeInit:
 		r, s, code, err := internal.MessageRead(internal.CodePeerInit(0), connection, obfuscated)
-		return r, s, C(code), err
+		return r, int(s), C(code), err
 
 	case Code:
 		r, s, code, err := internal.MessageRead(internal.CodePeer(0), connection, obfuscated)
-		return r, s, C(code), err
+		return r, int(s), C(code), err
 
 	default:
 		return nil, 0, 0, errors.New("invalid code")

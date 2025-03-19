@@ -308,7 +308,7 @@ func (c *Client) listenObfuscated(ctx context.Context) {
 
 					// Consumers must check the ConnectToPeer messages and match the token.
 					// Next they must wait for the PeerInit message on this connection.
-					c.Firewall <- &PierceFirewall{PierceFirewall: firewall, Conn: conn}
+					c.Firewall <- &PierceFirewall{PierceFirewall: firewall, Conn: conn, Obfuscated: true}
 
 					co.Debug().Int("token", int(firewall.Token)).Msg("incoming firewall token")
 
@@ -321,7 +321,7 @@ func (c *Client) listenObfuscated(ctx context.Context) {
 						return
 					}
 
-					c.Init <- &PeerInit{PeerInit: peerInit, Conn: conn}
+					c.Init <- &PeerInit{PeerInit: peerInit, Conn: conn, Obfuscated: true}
 
 					co.Debug().Str("username", peerInit.Username).Str("connection type", string(peerInit.ConnectionType)).Msg("peer connected")
 				}
@@ -366,7 +366,7 @@ func (c *Client) listen(ctx context.Context) {
 
 					// Consumers must check the ConnectToPeer messages and match the token.
 					// Next they must wait for the PeerInit message on this connection.
-					c.Firewall <- &PierceFirewall{PierceFirewall: firewall, Conn: conn}
+					c.Firewall <- &PierceFirewall{PierceFirewall: firewall, Conn: conn, Obfuscated: false}
 
 					c.log.Debug().Int("token", int(firewall.Token)).Msg("incoming firewall token")
 
@@ -379,7 +379,7 @@ func (c *Client) listen(ctx context.Context) {
 						return
 					}
 
-					c.Init <- &PeerInit{PeerInit: peerInit, Conn: conn}
+					c.Init <- &PeerInit{PeerInit: peerInit, Conn: conn, Obfuscated: false}
 
 					c.log.Debug().Str("username", peerInit.Username).Str("connection type", string(peerInit.ConnectionType)).Msg("peer connected")
 				}

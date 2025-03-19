@@ -32,7 +32,7 @@ const (
 // returns the message, the size of the message, the code of the message and an error.
 func Read(connection net.Conn) (*bytes.Buffer, int, Code, error) {
 	r, s, c, err := internal.MessageRead(internal.CodeServer(0), connection, false)
-	return r, s, Code(c), err
+	return r, int(s), Code(c), err
 }
 
 type message[M any] interface {

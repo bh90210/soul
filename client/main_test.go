@@ -15,21 +15,12 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 
-	cmd := exec.Command("docker", "build", "-t", "soultest:latest", ".")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	err := cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-
 	go func() {
-		cmd := exec.Command("docker", "run", "--name", "soultest", "-p", "2242:2242", "soultest:latest")
+		cmd := exec.Command("docker", "run", "--name", "soultest", "-p", "2242:2242", "ghcr.io/bh90210/soul:latest")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
-		err = cmd.Run()
+		err := cmd.Run()
 		if err != nil {
 			panic(err)
 		}
@@ -39,11 +30,11 @@ func TestMain(m *testing.M) {
 
 	m.Run()
 
-	cmd = exec.Command("docker", "stop", "soultest")
+	cmd := exec.Command("docker", "stop", "soultest")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		panic(err)
 	}

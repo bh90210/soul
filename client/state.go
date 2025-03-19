@@ -788,6 +788,7 @@ func (s *State) initializers(ctx context.Context, connType soul.ConnectionType, 
 	// If the connection is of type D (distributed), we send the branch root and level
 	// to the peer.
 	case distributed.ConnectionType:
+		s.mu.RLock()
 		_, err := distributed.Write(conn, &distributed.BranchRoot{Root: s.root})
 		if err != nil {
 			l.Error().Err(err).Msg("branch root")
@@ -799,6 +800,7 @@ func (s *State) initializers(ctx context.Context, connType soul.ConnectionType, 
 			l.Error().Err(err).Msg("branch level")
 			return
 		}
+		s.mu.RUnlock()
 	}
 
 	p.New(connType, conn, useObfuscatedPort)

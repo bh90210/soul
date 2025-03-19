@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/bh90210/soul"
 	"github.com/bh90210/soul/client"
+	"github.com/gosuri/uilive"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -59,68 +62,68 @@ func main() {
 
 	logger.Info().Str("username", config.Username).Msg("logged in")
 
-	select {}
-	// token := soul.NewToken()
-	// searchCtx, searchCancel := context.WithCancel(ctx)
-	// defer searchCancel()
+	// select {}
+	token := soul.NewToken()
+	searchCtx, searchCancel := context.WithCancel(ctx)
+	defer searchCancel()
 
-	// query := strings.Join(search, " ")
+	query := strings.Join(search, " ")
 
-	// results, err := state.Search(searchCtx, query, token)
-	// if err != nil {
-	// 	logger.Fatal().Err(err).Msg("search")
-	// }
+	results, err := state.Search(searchCtx, query, token)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("search")
+	}
 
-	// logger.Info().Any("token", token).Str("query", query).Msg("searching")
+	logger.Info().Any("token", token).Str("query", query).Msg("searching")
 
-	// writer := uilive.New()
+	writer := uilive.New()
 
-	// writer.Start()
+	writer.Start()
 
-	// for {
-	// 	result := <-results
-	// 	if result == nil {
-	// 		continue
-	// 	}
+	for {
+		result := <-results
+		if result == nil {
+			continue
+		}
 
-	// 	logger.Info().Str("username", result.Username).Any("results", result).Msg("search result")
+		logger.Info().Str("username", result.Username).Any("results", result).Msg("search result")
 
-	// 	if result.Queue == 0 && result.Results != nil {
-	// 		logger.Info().Int("result", len(result.Results)).Msg("search result")
+		// 	if result.Queue == 0 && result.Results != nil {
+		// 		logger.Info().Int("result", len(result.Results)).Msg("search result")
 
-	// 		if result.Results[0].Size == 0 {
-	// 			logger.Warn().Str("file", result.Results[0].Name).Msg("file has no size")
-	// 			continue
-	// 		}
+		// 		if result.Results[0].Size == 0 {
+		// 			logger.Warn().Str("file", result.Results[0].Name).Msg("file has no size")
+		// 			continue
+		// 		}
 
-	// 		downloadCtx, downloadCancel := context.WithCancel(ctx)
-	// 		defer downloadCancel()
+		// 		downloadCtx, downloadCancel := context.WithCancel(ctx)
+		// 		defer downloadCancel()
 
-	// 		statusD, errS := state.Download(downloadCtx, result)
+		// 		statusD, errS := state.Download(downloadCtx, result)
 
-	// 		logger.Info().Str("file", result.Results[0].Name).Str("peer", result.Username).Msg("downloading")
-	// 		logger = log.Output(zerolog.ConsoleWriter{Out: writer})
+		// 		logger.Info().Str("file", result.Results[0].Name).Str("peer", result.Username).Msg("downloading")
+		// 		logger = log.Output(zerolog.ConsoleWriter{Out: writer})
 
-	// 		for {
-	// 			select {
-	// 			case s := <-statusD:
-	// 				logger.Info().Str("file", result.Results[0].Name).Str("peer", result.Username).Str("status", s).Msg("download status")
-	// 				continue
+		// 		for {
+		// 			select {
+		// 			case s := <-statusD:
+		// 				logger.Info().Str("file", result.Results[0].Name).Str("peer", result.Username).Str("status", s).Msg("download status")
+		// 				continue
 
-	// 			case e := <-errS:
-	// 				if errors.Is(e, peer.ErrComplete) {
-	// 					writer.Stop()
-	// 					logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	// 					logger.Info().Str("file", result.Results[0].Name).Str("peer", result.Username).Msg("download complete")
-	// 					downloadCancel()
-	// 					return
-	// 					// continue
-	// 				}
+		// 			case e := <-errS:
+		// 				if errors.Is(e, peer.ErrComplete) {
+		// 					writer.Stop()
+		// 					logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+		// 					logger.Info().Str("file", result.Results[0].Name).Str("peer", result.Username).Msg("download complete")
+		// 					downloadCancel()
+		// 					return
+		// 					// continue
+		// 				}
 
-	// 				logger.Error().Str("file", result.Results[0].Name).Str("peer", result.Username).Err(e).Msg("download error")
-	// 				return
-	// 			}
-	// 		}
-	// 	}
-	// }
+		// 				logger.Error().Str("file", result.Results[0].Name).Str("peer", result.Username).Err(e).Msg("download error")
+		// 				return
+		// 			}
+		// 		}
+		// 	}
+	}
 }

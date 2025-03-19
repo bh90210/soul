@@ -3,7 +3,6 @@ package internal
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"io"
 	"net"
 	"sync"
@@ -44,7 +43,7 @@ func TestMessageRead(t *testing.T) {
 
 		r, size, code, err := MessageRead(CodePeerInit(0), client, false)
 		assert.NoError(t, err)
-		assert.Equal(t, 5, size)
+		assert.Equal(t, uint32(5), size)
 		assert.Equal(t, CodePeerInit(0), code)
 
 		s, err := ReadUint32(r) // Size.
@@ -72,7 +71,7 @@ func TestMessageRead(t *testing.T) {
 
 			buf := new(bytes.Buffer)
 
-			err := WriteUint32(buf, 0) // Code.
+			err := WriteUint32(buf, 2) // Code.
 			assert.NoError(t, err)
 
 			err = WriteUint32(buf, 1) // Data.
@@ -88,8 +87,8 @@ func TestMessageRead(t *testing.T) {
 
 		r, size, code, err := MessageRead(CodeServer(0), client, false)
 		assert.NoError(t, err)
-		assert.Equal(t, 8, size)
-		assert.Equal(t, CodeServer(0), code)
+		assert.Equal(t, uint32(8), size)
+		assert.Equal(t, CodeServer(2), code)
 
 		s, err := ReadUint32(r) // Size.
 		assert.NoError(t, err)
@@ -97,7 +96,7 @@ func TestMessageRead(t *testing.T) {
 
 		c, err := ReadUint32(r) // Code.
 		assert.NoError(t, err)
-		assert.Equal(t, uint32(0), c)
+		assert.Equal(t, uint32(2), c)
 
 		m, err := ReadUint32(r) // Data.
 		assert.NoError(t, err)
@@ -106,30 +105,68 @@ func TestMessageRead(t *testing.T) {
 		wg.Wait()
 	})
 
+	t.Run("Obfuscated Uint32", func(t *testing.T) {
+		message := new(bytes.Buffer)
+
+		err := WriteUint32(message, 1) // Code.
+		assert.NoError(t, err)
+
+		token := soul.NewToken()
+		err = WriteUint32(message, uint32(token)) // Data.
+		assert.NoError(t, err)
+
+		b, err := Pack(message.Bytes())
+		assert.NoError(t, err)
+
+		message.Reset()
+		n, err := MessageWrite(message, b, true)
+		assert.NoError(t, err)
+		assert.Equal(t, 16, n)
+
+		r, size, code, err := MessageRead(CodePeer(0), message, true)
+		assert.NoError(t, err)
+		require.Equal(t, uint32(8), size)
+		assert.Equal(t, CodePeer(1), code)
+		require.NotNil(t, r)
+
+		s, err := ReadUint32(r) // Size.
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(8), s)
+
+		c, err := ReadUint32(r) // Code.
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(1), c)
+
+		m, err := ReadUint32(r) // Data.
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(token), m)
+	})
 }
 
 func TestMessageWrite(t *testing.T) {
 	t.Parallel()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	t.Run("Non obfuscated", func(t *testing.T) {
+		var wg sync.WaitGroup
+		wg.Add(1)
 
-	server, client := net.Pipe()
-	go func() {
-		defer wg.Done()
+		server, client := net.Pipe()
+		go func() {
+			defer wg.Done()
 
-		buf := make([]byte, 1)
-		n, err := server.Read(buf)
+			buf := make([]byte, 1)
+			n, err := server.Read(buf)
+			assert.NoError(t, err)
+			assert.Equal(t, 1, n)
+			assert.Equal(t, []byte{1}, buf)
+		}()
+
+		n, err := MessageWrite(client, []byte{1}, false)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, n)
-		assert.Equal(t, []byte{1}, buf)
-	}()
 
-	n, err := MessageWrite(client, []byte{1}, false)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, n)
-
-	wg.Wait()
+		wg.Wait()
+	})
 }
 func TestPack(t *testing.T) {
 	t.Parallel()
@@ -393,39 +430,4 @@ func TestReadIP(t *testing.T) {
 
 	actual := ReadIP(1)
 	assert.Equal(t, net.IP{0, 0, 0, 1}, actual)
-}
-
-func TestDeobfuscateN(t *testing.T) {
-	t.Parallel()
-
-	original, err := hex.DecodeString("0800000079000000e8030000")
-	assert.NoError(t, err)
-
-	hexed, err := hex.DecodeString("1494ee4a2028dd952850ba2b4aa37457")
-	assert.NoError(t, err)
-
-	buf := bytes.NewReader(hexed)
-	r, err := deobfuscateN(buf, int64(len(original)))
-	assert.NoError(t, err)
-	assert.NotNil(t, r)
-
-	assert.Equal(t, original, r.Bytes())
-}
-
-func TestObfuscate(t *testing.T) {
-	t.Parallel()
-
-	original, err := hex.DecodeString("0800000079000000e8030000")
-	assert.NoError(t, err)
-
-	obfuscated, err := obfuscate(original)
-	assert.NoError(t, err)
-
-	buf := bytes.NewReader(obfuscated)
-
-	r, err := deobfuscateN(buf, int64(len(original)))
-	require.NoError(t, err)
-	assert.NotNil(t, r)
-
-	assert.Equal(t, original, r.Bytes())
 }

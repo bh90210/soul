@@ -43,8 +43,20 @@ type Code interface {
 // MessageRead reads a message from the connection. It reads the size of the message
 // and the code of the message. It then reads the message from the connection and
 // returns the message, the size of the message, the code of the message and an error.
-func MessageRead[C Code](c C, connection net.Conn, obfuscated bool) (*bytes.Buffer, int, C, error) {
-	message := new(bytes.Buffer)
+func MessageRead[C Code](c C, connection io.Reader, obfuscated bool) (message *bytes.Buffer, size uint32, code C, err error) {
+	if obfuscated {
+		var c CodePeer
+		message, size, c, err = deobfuscate(connection)
+		if err != nil {
+			return
+		}
+
+		code = C(c)
+
+		return
+	}
+
+	message = new(bytes.Buffer)
 
 	// We need to make two reads from the connection to determine the code of the message.
 	// Because we need these information down the line we TeeRead them to the message.
@@ -54,80 +66,28 @@ func MessageRead[C Code](c C, connection net.Conn, obfuscated bool) (*bytes.Buff
 
 	// All documentation about obfuscation is coming from the good people of https://aioslsk.readthedocs.io/en/latest/SOULSEEK.html#obfuscation.
 	// Read the size of the packet.
-	var size uint32
-	var err error
-	if obfuscated {
-		// We need to deobfuscate the size, which is the first packet of the message with a size of 4 bytes.
-		deobfuscated, err := teeDeobfuscateN(connection, message, 4)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-
-		size, err = ReadUint32(deobfuscated)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-	} else {
-		size, err = ReadUint32(messageHeader)
-		if err != nil {
-			return nil, 0, 0, err
-		}
+	size, err = ReadUint32(messageHeader)
+	if err != nil {
+		return nil, 0, 0, err
 	}
 
 	// Read the code of the message.
-	var code C
 	var readAlready int64
 	switch any(c).(type) {
-	case CodePeerInit:
+	case CodePeerInit, CodeDistributed:
 		var c uint8
-		if obfuscated {
-			deobfuscated, err := teeDeobfuscateN(connection, message, 1)
-			if err != nil {
-				return nil, 0, 0, err
-			}
-
-			c, err = ReadUint8(deobfuscated)
-			if err != nil {
-				return nil, 0, 0, err
-			}
-
-		} else {
-			c, err = ReadUint8(messageHeader)
-			if err != nil {
-				return nil, 0, 0, err
-			}
+		c, err = ReadUint8(messageHeader)
+		if err != nil {
+			return nil, 0, 0, err
 		}
 
 		code = C(c)
 
 		readAlready = 1
 
-	case CodePeer:
+	case CodePeer, CodeServer:
 		var c uint32
-		if obfuscated {
-			deobfuscated, err := teeDeobfuscateN(message, connection, 4)
-			if err != nil {
-				return nil, 0, 0, err
-			}
-
-			c, err = ReadUint32(deobfuscated)
-			if err != nil {
-				return nil, 0, 0, err
-			}
-
-		} else {
-			c, err = ReadUint32(messageHeader)
-			if err != nil {
-				return nil, 0, 0, err
-			}
-		}
-
-		code = C(c)
-
-		readAlready = 4
-
-	case CodeServer:
-		c, err := ReadUint32(messageHeader)
+		c, err = ReadUint32(messageHeader)
 		if err != nil {
 			return nil, 0, 0, err
 		}
@@ -135,16 +95,6 @@ func MessageRead[C Code](c C, connection net.Conn, obfuscated bool) (*bytes.Buff
 		code = C(c)
 
 		readAlready = 4
-
-	case CodeDistributed:
-		c, err := ReadUint8(messageHeader)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-
-		code = C(c)
-
-		readAlready = 1
 	}
 
 	// Now we simply copy a packet size read from the connection to the message buffer.
@@ -152,17 +102,9 @@ func MessageRead[C Code](c C, connection net.Conn, obfuscated bool) (*bytes.Buff
 	// The size of the actual message read needs -4 to account for the packet
 	// size and code reads that happened above.
 	var n int64
-	if obfuscated {
-		n, err = copyDeobfuscateN(message, connection, int64(size)-int64(readAlready))
-		if err != nil {
-			return nil, 0, 0, err
-		}
-
-	} else {
-		n, err = io.CopyN(message, connection, int64(size)-int64(readAlready))
-		if err != nil {
-			return nil, 0, 0, err
-		}
+	n, err = io.CopyN(message, connection, int64(size)-int64(readAlready))
+	if err != nil && !errors.Is(err, io.EOF) {
+		return
 	}
 
 	// Conversely, we need to add 4 to the size of the total read to account for the
@@ -172,52 +114,31 @@ func MessageRead[C Code](c C, connection net.Conn, obfuscated bool) (*bytes.Buff
 	if int64(size) != n {
 		return nil, 0, 0, soul.ErrDifferentPacketSize
 	}
-
-	return message, int(size), code, nil
+	return
 }
 
-func copyDeobfuscateN(message io.Writer, connection io.Reader, n int64) (int64, error) {
-	deobfuscated, err := deobfuscateN(connection, n)
-	if err != nil {
-		return 0, err
-	}
-
-	return io.CopyN(message, deobfuscated, n)
-}
-
-// TODO: make it a proper tee, drop the n and make it read as much as the consumer does.
-func teeDeobfuscateN(message io.Writer, connection io.Reader, n int64) (io.Reader, error) {
-	deobfuscated, err := deobfuscateN(connection, n)
-	if err != nil {
-		return nil, err
-	}
-
-	return io.TeeReader(deobfuscated, message), nil
-}
-
-func deobfuscateN(connection io.Reader, n int64) (*bytes.Buffer, error) {
-	deobfuscated := new(bytes.Buffer)
-
-	// Key is the first 4 bytes of the message in little-endian.
-	key := new(bytes.Buffer)
+func deobfuscate(connection io.Reader) (message *bytes.Buffer, size uint32, code CodePeer, err error) {
+	message = new(bytes.Buffer)
 
 	// Directly read from the connection to the key buffer.
+	key := new(bytes.Buffer)
 	i, err := io.CopyN(key, connection, 4)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	if i != 4 {
-		return nil, soul.ErrDifferentPacketSize
+	length := int64(4)
+	if i != length {
+		err = soul.ErrDifferentPacketSize
 	}
 
 	var readSoFar int64
-	for {
+	for l := 0; ; l++ {
 		// Convert it to big-endian integer.
 		var bigKey uint32
 		err = binary.Read(key, binary.LittleEndian, &bigKey)
 		if err != nil {
-			return nil, err
+			return
 		}
 
 		// Shift 31 bits to the right.
@@ -227,52 +148,102 @@ func deobfuscateN(connection io.Reader, n int64) (*bytes.Buffer, error) {
 		rotatedKey := new(bytes.Buffer)
 		err = binary.Write(rotatedKey, binary.LittleEndian, bigKey)
 		if err != nil {
-			return nil, err
+			return
 		}
+
+		key.Reset()
+		key.Write(rotatedKey.Bytes())
 
 		// Read next 4 bytes of the actual message from the connection.
 		next4bytes := new(bytes.Buffer)
-		i, err := io.CopyN(next4bytes, connection, 4)
+		i, err = io.CopyN(next4bytes, connection, length)
 		if err != nil {
-			return nil, err
+			return
 		}
 
-		// Track how many bytes we have read so far.
-		readSoFar += i
-
-		key.Reset()
-		deobfuscated4bytes := new(bytes.Buffer)
 		// XOR 4 bytes of the message with the 4 bytes of the rotated key.
-		for o := range i {
-			b, err := rotatedKey.ReadByte()
+		deobfuscated4bytes := new(bytes.Buffer)
+		for i := range i {
+			var b byte
+			b, err = rotatedKey.ReadByte()
 			if err != nil {
-				return nil, err
+				return
 			}
 
-			// We construct the new key while reading it for XOR.
-			err = key.WriteByte(b)
+			err = deobfuscated4bytes.WriteByte(b ^ next4bytes.Bytes()[i])
 			if err != nil {
-				return nil, err
+				return
 			}
-
-			b ^= next4bytes.Bytes()[o]
-			deobfuscated4bytes.WriteByte(b)
 		}
 
-		// Write the deobfuscated 4 bytes to the deobfuscated message buffer.
-		deobfuscated.Write(deobfuscated4bytes.Bytes())
+		var n int
+		switch l {
+		// Size.
+		case 0:
+			size, err = ReadUint32(bytes.NewBuffer(deobfuscated4bytes.Bytes()))
+			if err != nil {
+				return
+			}
 
-		if readSoFar == n {
+			n, err = message.Write(deobfuscated4bytes.Bytes())
+			if err != nil {
+				return
+			}
+
+			// Check if the size of the packet is the same as the size of the message (4).
+			if n != int(length) {
+				err = soul.ErrDifferentPacketSize
+			}
+
+		// Code.
+		case 1:
+			var c uint32
+			c, err = ReadUint32(bytes.NewBuffer(deobfuscated4bytes.Bytes()))
+			if err != nil {
+				return
+			}
+
+			code = CodePeer(c)
+
+			n, err = message.Write(deobfuscated4bytes.Bytes())
+			if err != nil {
+				return
+			}
+
+			if n != int(length) {
+				err = soul.ErrDifferentPacketSize
+			}
+
+			readSoFar += int64(n)
+
+		// Message.
+		default:
+			// Write the deobfuscated 4 bytes to the deobfuscated message buffer.
+			n, err = message.Write(deobfuscated4bytes.Bytes())
+			if err != nil {
+				return
+			}
+
+			readSoFar += int64(n)
+
+			// If there are less than 4 bytes left to read, we read the remaining bytes.
+			if (size - uint32(readSoFar)) < 4 {
+				length = int64(size) - readSoFar
+			}
+		}
+
+		// We reached the end of the message.
+		if readSoFar == int64(size) {
 			break
 		}
 	}
 
-	return deobfuscated, nil
+	return
 }
 
 // MessageWrite writes a message to the connection. It writes the message to the connection
 // and returns the number of bytes written and an error.
-func MessageWrite(connection net.Conn, message []byte, obfuscated bool) (int, error) {
+func MessageWrite(connection io.Writer, message []byte, obfuscated bool) (int, error) {
 	if obfuscated {
 		var err error
 		message, err = obfuscate(message)
