@@ -19,6 +19,7 @@ type PeerInit struct {
 	ConnectionType soul.ConnectionType
 }
 
+// Serialize accepts a PeerInit and returns a message packed as a byte slice.
 func (p *PeerInit) Serialize(message *PeerInit) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodePeerInit))
@@ -44,6 +45,7 @@ func (p *PeerInit) Serialize(message *PeerInit) ([]byte, error) {
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a PeerInit with the data in the provided reader.
 func (p *PeerInit) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

@@ -61,6 +61,7 @@ func (t *TransferResponse) Serialize(message *TransferResponse) ([]byte, error) 
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a TransferResponse with the data in the provided reader.
 func (t *TransferResponse) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

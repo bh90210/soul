@@ -20,6 +20,7 @@ type UploadDenied struct {
 	Reason   error
 }
 
+// Serialize accepts a UploadDenied and returns a message packed as a byte slice.
 func (u *UploadDenied) Serialize(message *UploadDenied) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -41,6 +42,7 @@ func (u *UploadDenied) Serialize(message *UploadDenied) ([]byte, error) {
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a UploadDenied with the data in the provided reader.
 func (u *UploadDenied) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

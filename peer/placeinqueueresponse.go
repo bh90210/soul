@@ -19,6 +19,7 @@ type PlaceInQueueResponse struct {
 	Place    uint32
 }
 
+// Serialize accepts a PlaceInQueueResponse and returns a message packed as a byte slice.
 func (p *PlaceInQueueResponse) Serialize(message *PlaceInQueueResponse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -40,6 +41,7 @@ func (p *PlaceInQueueResponse) Serialize(message *PlaceInQueueResponse) ([]byte,
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a PlaceInQueueResponse with the data in the provided reader.
 func (p *PlaceInQueueResponse) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

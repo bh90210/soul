@@ -20,6 +20,7 @@ type UploadFailed struct {
 	Filename string
 }
 
+// Serialize accepts a UploadFailed and returns a message packed as a byte slice.
 func (u *UploadFailed) Serialize(message *UploadFailed) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -36,6 +37,7 @@ func (u *UploadFailed) Serialize(message *UploadFailed) ([]byte, error) {
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a UploadFailed with the data in the provided reader.
 func (u *UploadFailed) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

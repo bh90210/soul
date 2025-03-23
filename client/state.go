@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"slices"
+
 	"github.com/bh90210/soul"
 	"github.com/bh90210/soul/distributed"
 	"github.com/bh90210/soul/file"
@@ -38,7 +40,7 @@ type State struct {
 	level    int32
 	root     string
 	parent   *Peer
-	children []*Peer // TODO: Periodically empty.
+	children []*Peer
 
 	log zerolog.Logger
 }
@@ -124,7 +126,7 @@ func (s *State) Login(ctx context.Context) error {
 				i.Add(1)
 
 				if m.Username != s.client.config.Username {
-					s.log.Error().Any("not me", m).Uint32("i", i.Load()).Any("me", s.client.config.Username).Send()
+					s.log.Warn().Any("not me", m).Uint32("i", i.Load()).Any("me", s.client.config.Username).Send()
 					continue
 				}
 
@@ -150,7 +152,7 @@ func (s *State) Login(ctx context.Context) error {
 
 	login := <-lis.Ch()
 
-	s.log.Debug().Str("Greet", login.Greet).Str("IP", login.IP.String()).Msg("login message received")
+	s.log.Info().Str("Greet", login.Greet).Str("IP", login.IP.String()).Msg("login message received")
 
 	// Send the rest of login messages.
 	_, err = server.Write(s.client.Conn(), &server.CheckPrivileges{})
@@ -221,6 +223,7 @@ func (s *State) Login(ctx context.Context) error {
 type File struct {
 	Username string
 	Token    soul.Token
+	Queue    int
 	*peer.File
 }
 
@@ -236,7 +239,7 @@ func (s *State) Search(ctx context.Context, query string, token soul.Token) (res
 	_, err = server.Write(s.client.Conn(), &server.FileSearch{Token: token, SearchQuery: query})
 	s.client.mu.RUnlock()
 	if err != nil {
-		s.log.Error().Err(err).Msg("search")
+		s.log.Warn().Err(err).Msg("search")
 		return
 	}
 
@@ -267,7 +270,7 @@ const (
 var ErrNoPeer = errors.New("no peer")
 
 // Download sends download message to the server and listens for the responses.
-func (s *State) Download(ctx context.Context, f *File) (status chan<- string, e chan<- error) {
+func (s *State) Download(ctx context.Context, f *File) (status chan string, e chan error) {
 	// Set the status and error channels.
 	status = make(chan string, 10)
 	e = make(chan error, 1)
@@ -402,7 +405,7 @@ func (s *State) Download(ctx context.Context, f *File) (status chan<- string, e 
 		for {
 			select {
 			case <-ctx.Done():
-				e <- errors.New("context done")
+				e <- errors.New("context done before file F connection")
 				return
 
 			default:
@@ -456,6 +459,7 @@ func (s *State) count(ctx context.Context, connType soul.ConnectionType, p *Peer
 	switch connType {
 	case peer.ConnectionType:
 		atomic.AddInt64(&s.connectedP, 1)
+
 		go func() {
 			<-ctx.Done()
 			atomic.AddInt64(&s.connectedP, -1)
@@ -467,10 +471,11 @@ func (s *State) count(ctx context.Context, connType soul.ConnectionType, p *Peer
 		s.mu.Unlock()
 
 		go func() {
+			<-ctx.Done()
 			s.mu.Lock()
 			for k, v := range s.children {
 				if v.username == p.username {
-					s.children = append(s.children[:k], s.children[k+1:]...)
+					s.children = slices.Delete(s.children, k, k+1)
 					break
 				}
 			}
@@ -479,6 +484,7 @@ func (s *State) count(ctx context.Context, connType soul.ConnectionType, p *Peer
 
 	case file.ConnectionType:
 		atomic.AddInt64(&s.connectedF, 1)
+
 		go func() {
 			<-ctx.Done()
 			atomic.AddInt64(&s.connectedF, -1)
@@ -595,7 +601,7 @@ func (s *State) server(ctx context.Context) {
 				_, err := server.Write(s.client.Conn(), &server.HaveNoParent{Have: false})
 				s.mu.RUnlock()
 				if err != nil {
-					s.log.Error().Err(err).Msg("have")
+					s.log.Warn().Err(err).Msg("have")
 					return
 				}
 
@@ -609,7 +615,7 @@ func (s *State) server(ctx context.Context) {
 				_, err = server.Write(s.client.Conn(), &server.HaveNoParent{Have: true})
 				s.mu.RUnlock()
 				if err != nil {
-					s.log.Error().Err(err).Msg("have")
+					s.log.Warn().Err(err).Msg("have")
 					return
 				}
 			}(parents)
@@ -642,12 +648,17 @@ func (s *State) server(ctx context.Context) {
 					conn, _ := peer.Conn(distributed.ConnectionType)
 					_, err := distributed.Write(conn, &distributed.EmbeddedMessage{Code: embed.Code, Message: embed.Message})
 					if err != nil {
-						s.log.Error().Err(err).Msg("search")
+						s.log.Warn().Err(err).Msg("search")
 						continue
 					}
 				}
 
 				s.level = 0
+
+				// Disconnect from all children.
+				for _, p := range s.children {
+					go p.cancelD()
+				}
 				s.mu.RUnlock()
 			}(embed)
 
@@ -739,7 +750,7 @@ func (s *State) peer(ctx context.Context) {
 
 				conn, err := net.Dial("tcp", fmt.Sprintf("%s:%v", connect.IP.String(), port))
 				if err != nil {
-					cl.Error().Err(err).Msg("dial")
+					cl.Warn().Err(err).Msg("dial")
 					return
 				}
 
@@ -747,7 +758,7 @@ func (s *State) peer(ctx context.Context) {
 
 				_, err = peer.Write(conn, &peer.PierceFirewall{Token: connect.Token}, useObfuscatedPort)
 				if err != nil {
-					cl.Error().Err(err).Msg("pierce firewall")
+					cl.Warn().Err(err).Msg("pierce firewall")
 					return
 				}
 
@@ -791,13 +802,13 @@ func (s *State) initializers(ctx context.Context, connType soul.ConnectionType, 
 		s.mu.RLock()
 		_, err := distributed.Write(conn, &distributed.BranchRoot{Root: s.root})
 		if err != nil {
-			l.Error().Err(err).Msg("branch root")
+			l.Warn().Err(err).Msg("branch root")
 			return
 		}
 
 		_, err = distributed.Write(conn, &distributed.BranchLevel{Level: s.level})
 		if err != nil {
-			l.Error().Err(err).Msg("branch level")
+			l.Warn().Err(err).Msg("branch level")
 			return
 		}
 		s.mu.RUnlock()
@@ -810,16 +821,22 @@ func (s *State) initializers(ctx context.Context, connType soul.ConnectionType, 
 	go s.count(ctx, connType, p)
 }
 
-// TODO: finish me Byron.
 func (s *State) distributed(m *server.PossibleParents) {
 	for _, parent := range m.Parents {
 		pl := s.log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Str("parent", parent.Username).Logger()
 
 		pl.Debug().Msg("trying parent")
 
+		s.mu.Lock()
+		for _, v := range s.children {
+			go v.cancelD()
+		}
+		s.children = make([]*Peer, 0)
+		s.mu.Unlock()
+
 		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%v", parent.IP.String(), parent.Port))
 		if err != nil {
-			pl.Error().Err(err).Msg("distributed")
+			pl.Warn().Err(err).Msg("distributed")
 			continue
 		}
 
@@ -861,7 +878,7 @@ func (s *State) distributed(m *server.PossibleParents) {
 			ConnectionType: distributed.ConnectionType,
 		})
 		if err != nil {
-			pl.Error().Err(err).Msg("init")
+			pl.Warn().Err(err).Msg("init")
 			continue
 		}
 
@@ -882,7 +899,7 @@ func (s *State) distributed(m *server.PossibleParents) {
 				pl.Debug().Any("branch", branch).Msg("branch")
 				_, err = server.Write(s.client.Conn(), &server.BranchRoot{Root: branch.Root})
 				if err != nil {
-					pl.Error().Err(err).Msg("branch root")
+					pl.Warn().Err(err).Msg("branch root")
 					continue
 				}
 
@@ -893,13 +910,13 @@ func (s *State) distributed(m *server.PossibleParents) {
 
 				_, err = server.Write(s.client.Conn(), &server.BranchLevel{Level: int(level.Level + 1)})
 				if err != nil {
-					pl.Error().Err(err).Msg("branch level")
+					pl.Warn().Err(err).Msg("branch level")
 					continue
 				}
 
 				s.level = level.Level + 1
 
-				// We are first child in our distributed branch.
+			// We are first child in our distributed branch.
 			case embed := <-embed.Ch():
 				pl.Debug().Any("embed", embed).Msg("embed")
 
@@ -911,14 +928,14 @@ func (s *State) distributed(m *server.PossibleParents) {
 							message := new(distributed.Search)
 							err = message.Deserialize(bytes.NewBuffer(embed.Message))
 							if err != nil {
-								pl.Error().Err(err).Msg("search")
+								pl.Warn().Err(err).Msg("search")
 								continue
 							}
 
 							conn, _ := peer.Conn(distributed.ConnectionType)
 							_, err = distributed.Write(conn, message)
 							if err != nil {
-								pl.Error().Err(err).Msg("search")
+								pl.Warn().Err(err).Msg("search")
 								continue
 							}
 
@@ -926,14 +943,14 @@ func (s *State) distributed(m *server.PossibleParents) {
 							message := new(distributed.BranchRoot)
 							err = message.Deserialize(bytes.NewBuffer(embed.Message))
 							if err != nil {
-								pl.Error().Err(err).Msg("root")
+								pl.Warn().Err(err).Msg("root")
 								continue
 							}
 
 							conn, _ := peer.Conn(distributed.ConnectionType)
 							_, err = distributed.Write(conn, message)
 							if err != nil {
-								pl.Error().Err(err).Msg("root")
+								pl.Warn().Err(err).Msg("root")
 								continue
 							}
 
@@ -941,14 +958,14 @@ func (s *State) distributed(m *server.PossibleParents) {
 							message := new(distributed.BranchLevel)
 							err = message.Deserialize(bytes.NewBuffer(embed.Message))
 							if err != nil {
-								pl.Error().Err(err).Msg("level")
+								pl.Warn().Err(err).Msg("level")
 								continue
 							}
 
 							conn, _ := peer.Conn(distributed.ConnectionType)
 							_, err = distributed.Write(conn, message)
 							if err != nil {
-								pl.Error().Err(err).Msg("level")
+								pl.Warn().Err(err).Msg("level")
 								continue
 							}
 						}
@@ -963,7 +980,7 @@ func (s *State) distributed(m *server.PossibleParents) {
 						conn, _ := peer.Conn(distributed.ConnectionType)
 						_, err = distributed.Write(conn, search)
 						if err != nil {
-							pl.Error().Err(err).Msg("search")
+							pl.Warn().Err(err).Msg("search")
 							continue
 						}
 					}
@@ -1007,6 +1024,7 @@ func (s *State) fileResponse(p *Peer) {
 					channel <- &File{
 						Username: fileResponse.Username,
 						Token:    fileResponse.Token,
+						Queue:    fileResponse.Queue,
 						File:     &f,
 					}
 				}
@@ -1015,6 +1033,7 @@ func (s *State) fileResponse(p *Peer) {
 					channel <- &File{
 						Username: fileResponse.Username,
 						Token:    fileResponse.Token,
+						Queue:    fileResponse.Queue,
 						File:     &f,
 					}
 				}

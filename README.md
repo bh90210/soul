@@ -91,7 +91,6 @@ If this library was not what you were looking for consider checking out [spotsee
 
 
 # TODO
-- [ ] finish peer tests + documentation
 - [ ] finish server tests + documentation
 - [ ] client integration tests
 - [ ] incoming search/file requests via state (distributed+server)

@@ -12,6 +12,7 @@ import (
 
 const CodeUserInfoResponse Code = 16
 
+// UserInfoResponse code 16, a peer responds with this after we’ve sent a UserInfoRequest.
 type UserInfoResponse struct {
 	Description     string
 	Picture         []byte
@@ -21,6 +22,7 @@ type UserInfoResponse struct {
 	UploadPermitted UploadPermission
 }
 
+// Serialize accepts a UserInfoResponse and returns a message packed as a byte slice.
 func (u *UserInfoResponse) Serialize(message *UserInfoResponse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeUserInfoResponse))
@@ -73,6 +75,7 @@ func (u *UserInfoResponse) Serialize(message *UserInfoResponse) ([]byte, error) 
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a UserInfoResponse with the data in the provided reader.
 func (u *UserInfoResponse) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

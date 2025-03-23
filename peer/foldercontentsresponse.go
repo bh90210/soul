@@ -27,6 +27,7 @@ type Folder struct {
 	Files     []File
 }
 
+// Serialize accepts a FolderContentsResponse and returns a message packed as a byte slice.
 func (f *FolderContentsResponse) Serialize(message *FolderContentsResponse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeFolderContentsResponse))
@@ -110,6 +111,7 @@ func (f *FolderContentsResponse) Serialize(message *FolderContentsResponse) ([]b
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a FolderContentsResponse with the data in the provided reader.
 func (f *FolderContentsResponse) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

@@ -18,6 +18,7 @@ type FolderContentsRequest struct {
 	Folder string
 }
 
+// Serialize accepts a FolderContentsRequest and returns a message packed as a byte slice.
 func (f *FolderContentsRequest) Serialize(message *FolderContentsRequest) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeFolderContentsRequest))
@@ -38,6 +39,7 @@ func (f *FolderContentsRequest) Serialize(message *FolderContentsRequest) ([]byt
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a FolderContentsRequest with the data in the provided reader.
 func (f *FolderContentsRequest) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

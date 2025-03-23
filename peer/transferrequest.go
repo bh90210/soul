@@ -26,6 +26,7 @@ type TransferRequest struct {
 	FileSize  uint64
 }
 
+// Serialize accepts a TransferRequest and returns a message packed as a byte slice.
 func (t *TransferRequest) Serialize(message *TransferRequest) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -59,6 +60,7 @@ func (t *TransferRequest) Serialize(message *TransferRequest) ([]byte, error) {
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a TransferRequest with the data in the provided reader.
 func (t *TransferRequest) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

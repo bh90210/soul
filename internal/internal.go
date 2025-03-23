@@ -564,7 +564,7 @@ func WriteBytes(buf io.Writer, content []byte) error {
 // ReadIP reads an IP address in uint32 and returns net.IP..
 func ReadIP(val uint32) net.IP {
 	ip := make(net.IP, 4)
-	binary.BigEndian.PutUint32(ip, val) // TODO: check why endianess is different than the rest.
+	binary.BigEndian.PutUint32(ip, val)
 
 	return ip
 }

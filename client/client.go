@@ -269,7 +269,6 @@ func (c *Client) read(ctx context.Context) {
 	}
 }
 
-// TODO: implement limits (see config's limits.)
 func (c *Client) listenObfuscated(ctx context.Context) {
 	co := c.log.With().Bool("obfuscated", true).Logger()
 
@@ -283,7 +282,7 @@ func (c *Client) listenObfuscated(ctx context.Context) {
 			conn, err := c.listenerObfuscated.Accept()
 			c.mu.RUnlock()
 			if err != nil {
-				co.Error().Err(err).Msg("accept TCP")
+				co.Warn().Err(err).Msg("accept TCP")
 				continue
 			}
 
@@ -291,7 +290,7 @@ func (c *Client) listenObfuscated(ctx context.Context) {
 				// Upon a new connection we reed for init codes.
 				r, _, code, err := peer.Read(peer.CodeInit(0), conn, true)
 				if err != nil {
-					co.Error().Err(err).Msg("accept TCP")
+					co.Warn().Err(err).Msg("init TCP")
 					return
 				}
 
@@ -302,7 +301,7 @@ func (c *Client) listenObfuscated(ctx context.Context) {
 					firewall := new(peer.PierceFirewall)
 					err = firewall.Deserialize(r)
 					if err != nil {
-						co.Error().Err(err).Msg("pierce firewall")
+						co.Warn().Err(err).Msg("pierce firewall")
 						return
 					}
 
@@ -317,7 +316,7 @@ func (c *Client) listenObfuscated(ctx context.Context) {
 					peerInit := new(peer.PeerInit)
 					err := peerInit.Deserialize(r)
 					if err != nil {
-						co.Error().Err(err).Msg("peer connected")
+						co.Warn().Err(err).Msg("peer connected")
 						return
 					}
 
@@ -341,7 +340,7 @@ func (c *Client) listen(ctx context.Context) {
 			conn, err := c.listener.Accept()
 			c.mu.RUnlock()
 			if err != nil {
-				c.log.Error().Err(err).Msg("accept TCP")
+				c.log.Warn().Err(err).Msg("accept TCP")
 				continue
 			}
 
@@ -349,7 +348,7 @@ func (c *Client) listen(ctx context.Context) {
 				// Upon a new connection we reed for init codes.
 				r, _, code, err := peer.Read(peer.CodeInit(0), conn, false)
 				if err != nil {
-					c.log.Error().Err(err).Msg("accept TCP")
+					c.log.Warn().Err(err).Msg("init TCP")
 					return
 				}
 
@@ -360,7 +359,7 @@ func (c *Client) listen(ctx context.Context) {
 					firewall := new(peer.PierceFirewall)
 					err = firewall.Deserialize(r)
 					if err != nil {
-						c.log.Error().Err(err).Msg("pierce firewall")
+						c.log.Warn().Err(err).Msg("pierce firewall")
 						return
 					}
 
@@ -375,7 +374,7 @@ func (c *Client) listen(ctx context.Context) {
 					peerInit := new(peer.PeerInit)
 					err := peerInit.Deserialize(r)
 					if err != nil {
-						c.log.Error().Err(err).Msg("peer connected")
+						c.log.Warn().Err(err).Msg("peer connected")
 						return
 					}
 
@@ -391,7 +390,6 @@ func (c *Client) listen(ctx context.Context) {
 // deserialize reads messages from the deserialization queue. If successful, it
 // sends a notification to all potential listeners with a cancellation context.
 func (c *Client) deserialize() {
-	// TODO: implement limits, see config.
 	for {
 		for code, r := range <-c.queue {
 			go func(code server.Code, r io.Reader) {

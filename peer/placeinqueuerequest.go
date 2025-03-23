@@ -18,6 +18,7 @@ type PlaceInQueueRequest struct {
 	Filename string
 }
 
+// Serialize accepts a PlaceInQueueRequest and returns a message packed as a byte slice.
 func (PlaceInQueueRequest) Serialize(message *PlaceInQueueRequest) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -34,6 +35,7 @@ func (PlaceInQueueRequest) Serialize(message *PlaceInQueueRequest) ([]byte, erro
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a PlaceInQueueRequest with the data in the provided reader.
 func (p *PlaceInQueueRequest) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

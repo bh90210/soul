@@ -26,7 +26,7 @@ type FileSearchResponse struct {
 }
 
 // Serialize accepts a FileSearchResponse and returns a message packed as a byte slice.
-func (f *FileSearchResponse) Serialize(fs FileSearchResponse) ([]byte, error) {
+func (f *FileSearchResponse) Serialize(fs *FileSearchResponse) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint32(buf, uint32(CodeFileSearchResponse))
 	if err != nil {
@@ -94,13 +94,8 @@ func (f *FileSearchResponse) Serialize(fs FileSearchResponse) ([]byte, error) {
 }
 
 func (FileSearchResponse) walkWrite(zw *zlib.Writer, files []File) error {
-	err := internal.WriteUint32(zw, uint32(len(files)))
-	if err != nil {
-		return err
-	}
-
 	for _, file := range files {
-		err = internal.WriteUint8(zw, uint8(1))
+		err := internal.WriteUint8(zw, uint8(1))
 		if err != nil {
 			return err
 		}
@@ -153,6 +148,7 @@ func (FileSearchResponse) walkWrite(zw *zlib.Writer, files []File) error {
 	return nil
 }
 
+// Deserialize populates a FileSearchResponse with the data in the provided reader.
 func (f *FileSearchResponse) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
@@ -193,6 +189,7 @@ func (f *FileSearchResponse) Deserialize(reader io.Reader) error {
 
 	f.Results, err = f.walkRead(results, zr)
 	if err != nil {
+		return err
 	}
 
 	f.FreeSlot, err = internal.ReadBool(zr)
@@ -257,7 +254,6 @@ func (f *FileSearchResponse) walkRead(numberOfFiles uint32, zr io.ReadCloser) (f
 		if err != nil && !errors.Is(err, io.EOF) {
 			return
 		}
-
 		for j := uint32(0); j < attributes; j++ {
 			attribute := Attribute{}
 

@@ -19,6 +19,7 @@ type PierceFirewall struct {
 	Token soul.Token
 }
 
+// Serialize accepts a PierceFirewall and returns a message packed as a byte slice.
 func (p *PierceFirewall) Serialize(message *PierceFirewall) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := internal.WriteUint8(buf, uint8(CodePierceFirewall))
@@ -34,6 +35,7 @@ func (p *PierceFirewall) Serialize(message *PierceFirewall) ([]byte, error) {
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a PierceFirewall with the data in the provided reader.
 func (p *PierceFirewall) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {

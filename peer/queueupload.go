@@ -19,6 +19,7 @@ type QueueUpload struct {
 	Filename string
 }
 
+// Serialize accepts a QueueUpload and returns a message packed as a byte slice.
 func (q *QueueUpload) Serialize(message *QueueUpload) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
@@ -35,6 +36,7 @@ func (q *QueueUpload) Serialize(message *QueueUpload) ([]byte, error) {
 	return internal.Pack(buf.Bytes())
 }
 
+// Deserialize populates a QueueUpload with the data in the provided reader.
 func (q *QueueUpload) Deserialize(reader io.Reader) error {
 	_, err := internal.ReadUint32(reader) // size
 	if err != nil {
