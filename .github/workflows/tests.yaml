@@ -10,7 +10,7 @@ jobs:
 
     services:
       soulfind:
-        image: ghcr.io/soulfind/server:latest
+        image: ghcr.io/bh90210/soul:latest
         ports:
           - "2242:2242"
         credentials:
