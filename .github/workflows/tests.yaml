@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  test-suite:
+  testsuite:
     runs-on: ubuntu-latest
 
     services:
@@ -14,7 +14,7 @@ jobs:
         ports:
           - "2242:2242"
         credentials:
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.REGISTRY_TOKEN }}
 
     steps:
