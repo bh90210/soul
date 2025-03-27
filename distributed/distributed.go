@@ -7,7 +7,6 @@ package distributed
 
 import (
 	"io"
-	"net"
 
 	"github.com/bh90210/soul"
 	"github.com/bh90210/soul/internal"
@@ -23,7 +22,7 @@ type Code int
 // Read reads a message from a distributed connection. It reads the size of the message
 // and the code of the message. It then reads the message from the connection and
 // returns the message, the size of the message, the code of the message and an error.
-func Read(connection net.Conn) (io.Reader, int, Code, error) {
+func Read(connection io.Reader) (io.Reader, int, Code, error) {
 	r, s, c, err := internal.MessageRead(internal.CodeDistributed(0), connection, false)
 	return r, int(s), Code(c), err
 }
@@ -43,7 +42,7 @@ type message[M any] interface {
 // Write writes a message to a distributed connection. It writes the size of the message
 // and the code of the message. It then writes the message to the connection and returns
 // the number of bytes written and an error.
-func Write[M message[M]](connection net.Conn, message M) (int, error) {
+func Write[M message[M]](connection io.Writer, message M) (int, error) {
 	m, err := message.Serialize(message)
 	if err != nil {
 		return 0, err

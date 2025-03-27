@@ -3,7 +3,7 @@
 package file
 
 import (
-	"net"
+	"io"
 
 	"github.com/bh90210/soul"
 	"github.com/bh90210/soul/internal"
@@ -17,7 +17,7 @@ type message[M any] interface {
 	Serialize(M) ([]byte, error)
 }
 
-func Write[M message[M]](connection net.Conn, message M) (int, error) {
+func Write[M message[M]](connection io.Writer, message M) (int, error) {
 	m, err := message.Serialize(message)
 	if err != nil {
 		return 0, err

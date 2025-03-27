@@ -1,3 +1,5 @@
+// Description: This example demonstrates how to search for a file and download it.
+// The search is done by sending a search query to the server and reading the results.
 package main
 
 import (
@@ -24,7 +26,7 @@ func main() {
 		Username:          "ppoooopiko",
 		Password:          "ghfyu5eu6yt",
 		OwnPort:           2234,
-		OwnObfuscatedPort: 2235,
+		OwnPortObfuscated: 2235,
 		SoulSeekAddress:   "server.slsknet.org",
 		SoulSeekPort:      2242,
 		SharedFolders:     100,

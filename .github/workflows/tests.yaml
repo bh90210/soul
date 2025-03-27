@@ -26,7 +26,7 @@ jobs:
         go-version: '1.24'
 
     - name: Test suite
-      run: go test -parallel 100 --cover -covermode=atomic -coverpkg=./... ./... -coverprofile=coverage.txt	
+      run: go test -parallel 100 --cover -covermode=atomic -coverpkg=./... ./... -coverprofile=coverage.txt	-tags=testdata
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5

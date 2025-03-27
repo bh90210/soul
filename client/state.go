@@ -54,6 +54,7 @@ func NewState(c *Client) *State {
 	}
 
 	s.log = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	s.log = s.log.Level(c.config.LogLevel)
 
 	return s
 }
@@ -161,8 +162,8 @@ func (s *State) Login(ctx context.Context) error {
 	}
 
 	port := &server.SetListenPort{Port: s.client.config.OwnPort}
-	if s.client.config.OwnObfuscatedPort != 0 {
-		port.ObfuscatedPort = s.client.config.OwnObfuscatedPort
+	if s.client.config.OwnPortObfuscated != 0 {
+		port.ObfuscatedPort = s.client.config.OwnPortObfuscated
 	}
 
 	_, err = server.Write(s.client.Conn(), port)

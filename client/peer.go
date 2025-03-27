@@ -63,6 +63,7 @@ func NewPeer(config *Config, message *peer.PeerInit) *Peer {
 	}
 
 	p.log = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	p.log = p.log.Level(config.LogLevel)
 	p.log = p.log.With().Str("username", p.username).Logger()
 
 	p.relayInit()

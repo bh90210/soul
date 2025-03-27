@@ -11,7 +11,6 @@ package peer
 import (
 	"errors"
 	"io"
-	"net"
 
 	"github.com/bh90210/soul"
 	"github.com/bh90210/soul/internal"
@@ -122,7 +121,7 @@ func Reason(reason string) error {
 	}
 }
 
-func Read[C CodeInit | Code](c C, connection net.Conn, obfuscated bool) (io.Reader, int, C, error) {
+func Read[C CodeInit | Code](c C, connection io.Reader, obfuscated bool) (io.Reader, int, C, error) {
 	switch any(c).(type) {
 	case CodeInit:
 		r, s, code, err := internal.MessageRead(internal.CodePeerInit(0), connection, obfuscated)
@@ -157,7 +156,7 @@ type message[M any] interface {
 	Serialize(M) ([]byte, error)
 }
 
-func Write[M message[M]](connection net.Conn, message M, obfuscate bool) (int, error) {
+func Write[M message[M]](connection io.Writer, message M, obfuscate bool) (int, error) {
 	m, err := message.Serialize(message)
 	if err != nil {
 		return 0, err

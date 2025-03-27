@@ -1,3 +1,4 @@
+// Package client contains a Client and a Peer routers, along a State for all interaction with the SoulSeek network.
 package client
 
 import (
@@ -63,7 +64,7 @@ type Config struct {
 	SoulSeekPort       int
 	OwnHostname        string
 	OwnPort            int
-	OwnObfuscatedPort  int
+	OwnPortObfuscated  int
 	Username           string
 	Password           string
 	SharedFolders      int
@@ -84,6 +85,7 @@ func DefaultConfig() *Config {
 		SoulSeekPort:       2242,
 		OwnHostname:        "localhost",
 		OwnPort:            2234,
+		OwnPortObfuscated:  2235,
 		Username:           gonanoid.MustGenerate("soulseek", 7),
 		Password:           gonanoid.MustGenerate("0123456789qwertyuiop", 10),
 		LogLevel:           zerolog.Disabled,
@@ -108,6 +110,7 @@ func New(conf ...*Config) (*Client, error) {
 	}
 
 	c.log = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	c.log = c.log.Level(c.config.LogLevel)
 	c.log = c.log.With().Str("username", c.config.Username).Logger()
 
 	// Init all necessary maps and channels.
@@ -159,8 +162,8 @@ func (c *Client) Dial(ctx context.Context, cancel context.CancelFunc) error {
 
 	go c.listen(ctx)
 
-	if c.config.OwnObfuscatedPort != 0 {
-		c.listenerObfuscated, err = net.Listen("tcp", fmt.Sprintf("%s:%v", c.config.OwnHostname, c.config.OwnObfuscatedPort))
+	if c.config.OwnPortObfuscated != 0 {
+		c.listenerObfuscated, err = net.Listen("tcp", fmt.Sprintf("%s:%v", c.config.OwnHostname, c.config.OwnPortObfuscated))
 		if err != nil {
 			go cancel()
 			return err

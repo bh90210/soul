@@ -7,7 +7,7 @@ package server
 
 import (
 	"bytes"
-	"net"
+	"io"
 
 	"github.com/bh90210/soul/internal"
 )
@@ -30,7 +30,7 @@ const (
 // Read reads a message from a server connection. It reads the size of the message
 // and the code of the message. It then reads the message from the connection and
 // returns the message, the size of the message, the code of the message and an error.
-func Read(connection net.Conn) (*bytes.Buffer, int, Code, error) {
+func Read(connection io.Reader) (*bytes.Buffer, int, Code, error) {
 	r, s, c, err := internal.MessageRead(internal.CodeServer(0), connection, false)
 	return r, int(s), Code(c), err
 }
@@ -77,7 +77,7 @@ type message[M any] interface {
 	Serialize(M) ([]byte, error)
 }
 
-func Write[M message[M]](connection net.Conn, message M) (int, error) {
+func Write[M message[M]](connection io.Writer, message M) (int, error) {
 	m, err := message.Serialize(message)
 	if err != nil {
 		return 0, err

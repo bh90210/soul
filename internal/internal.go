@@ -44,9 +44,15 @@ type Code interface {
 // and the code of the message. It then reads the message from the connection and
 // returns the message, the size of the message, the code of the message and an error.
 func MessageRead[C Code](c C, connection io.Reader, obfuscated bool) (message *bytes.Buffer, size uint32, code C, err error) {
+	var initOrDistributed bool
+	switch any(c).(type) {
+	case CodePeerInit, CodeDistributed:
+		initOrDistributed = true
+	}
+
 	if obfuscated {
 		var c CodePeer
-		message, size, c, err = deobfuscate(connection)
+		message, size, c, err = deobfuscate(connection, initOrDistributed)
 		if err != nil {
 			return
 		}
@@ -73,8 +79,8 @@ func MessageRead[C Code](c C, connection io.Reader, obfuscated bool) (message *b
 
 	// Read the code of the message.
 	var readAlready int64
-	switch any(c).(type) {
-	case CodePeerInit, CodeDistributed:
+	switch initOrDistributed {
+	case true:
 		var c uint8
 		c, err = ReadUint8(messageHeader)
 		if err != nil {
@@ -85,7 +91,7 @@ func MessageRead[C Code](c C, connection io.Reader, obfuscated bool) (message *b
 
 		readAlready = 1
 
-	case CodePeer, CodeServer:
+	case false:
 		var c uint32
 		c, err = ReadUint32(messageHeader)
 		if err != nil {
@@ -117,7 +123,7 @@ func MessageRead[C Code](c C, connection io.Reader, obfuscated bool) (message *b
 	return
 }
 
-func deobfuscate(connection io.Reader) (message *bytes.Buffer, size uint32, code CodePeer, err error) {
+func deobfuscate(connection io.Reader, init bool) (message *bytes.Buffer, size uint32, code CodePeer, err error) {
 	message = new(bytes.Buffer)
 
 	// Directly read from the connection to the key buffer.
@@ -197,13 +203,24 @@ func deobfuscate(connection io.Reader) (message *bytes.Buffer, size uint32, code
 
 		// Code.
 		case 1:
-			var c uint32
-			c, err = ReadUint32(bytes.NewBuffer(deobfuscated4bytes.Bytes()))
-			if err != nil {
-				return
-			}
+			if init {
+				var c uint8
+				c, err = ReadUint8(bytes.NewBuffer(deobfuscated4bytes.Bytes()))
+				if err != nil {
+					return
+				}
 
-			code = CodePeer(c)
+				code = CodePeer(c)
+
+			} else {
+				var c uint32
+				c, err = ReadUint32(bytes.NewBuffer(deobfuscated4bytes.Bytes()))
+				if err != nil {
+					return
+				}
+
+				code = CodePeer(c)
+			}
 
 			n, err = message.Write(deobfuscated4bytes.Bytes())
 			if err != nil {

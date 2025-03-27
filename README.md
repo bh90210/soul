@@ -15,7 +15,7 @@ The library offers complete coverage of all server, peer, distributed and file m
 
 On top there is a client package with file sharing capabilities (global search/download/upload API/distributed network participation, obfuscation) but no room searches, direct peer searches for directories or wishlist (PRs are welcome* :)
 
-_* in the year 2025 & looking forward, maybe sending messages to chat rooms not encrypted isn't the best idea, so please avoid that. Client chat/messaging code missing is a feature. Even though server messages facilitating this functionality are present in the library for completeness sake, consider not using them._
+_* Even though server messages facilitating chat functionality are present in the library for completeness sake, consider not using them as they are unencrypted in the open._
 
 # How to use
 
@@ -73,14 +73,14 @@ _State_ struct is where the "business logic" lives. Besides the public methods i
 
 ## Tests
 
-The library is covered via unit and integration tests. Running the `-short` test suite will result in running the unit tests. The integration tests need docker available in host to run. This is because we are opening a local [Soulfind](https://github.com/soulfind-dev/soulfind) instance (check the `/client/Dockerfile` for more.)
+The library is covered via unit and integration tests. Running the `-short` test suite will result in running the unit tests. The integration tests need [Soulfind](https://github.com/soulfind-dev/soulfind) instance (check the `/testdata/Dockerfile.soulfind` for more) running. For convenience you can just `docker run --rm -it -p 2242:2242 ghcr.io/bh90210/soul:latest` and it will spin a Soulfind enabled container.
 
 Units cover all connection types' serialization/deserialization and internal packages.
 
 The `client` package contains the integration tests.
 
 ```bash
-go test -parallel 100 --cover -covermode=atomic -coverpkg=./... ./...
+go test -parallel 100 --cover -covermode=atomic -coverpkg=./... ./... -tags=testdata
 ```
 
 # Acknowledgements
