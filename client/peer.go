@@ -182,6 +182,7 @@ func (p *Peer) read(ctx context.Context, obfuscated bool) {
 				continue
 			}
 
+			// TODO: re-check this solution.
 			if code == peer.Code(0) && size == 0 {
 				p.mu.RLock()
 				p.cancel()
@@ -204,6 +205,7 @@ func (p *Peer) readD(ctx context.Context) {
 			p.mu.RLock()
 			r, size, code, err := distributed.Read(p.connD)
 			p.mu.RUnlock()
+
 			if err != nil && !errors.Is(err, io.EOF) {
 				if errors.Is(err, net.ErrClosed) {
 					p.mu.RLock()

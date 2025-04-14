@@ -12,15 +12,15 @@ func TestAdminMessage(t *testing.T) {
 	t.Parallel()
 
 	buf := new(bytes.Buffer)
-	internal.WriteUint32(buf, uint32(CodeAdminMessage))
-	internal.WriteString(buf, "test")
-	b, _ := internal.Pack(buf.Bytes())
-
-	buf = new(bytes.Buffer)
-	buf.Write(b)
+	err := internal.WriteUint32(buf, uint32(CodeAdminMessage))
+	assert.NoError(t, err)
+	err = internal.WriteString(buf, "test")
+	assert.NoError(t, err)
+	b, err := internal.Pack(buf.Bytes())
+	assert.NoError(t, err)
 
 	adminMessage := new(AdminMessage)
-	err := adminMessage.Deserialize(buf)
+	err = adminMessage.Deserialize(bytes.NewReader(b))
 	assert.NoError(t, err)
 	assert.Equal(t, "test", adminMessage.Message)
 }

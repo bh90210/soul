@@ -65,7 +65,7 @@ To successfully make use of the network, you will need certain procedures involv
 
 ### Client & Peer
 
-The methods of _Client_ and _Peer_ structs are purposefully small and simple. Both provide a `Relays` field that can produce listeners for all incoming messages. Think of them as an http router. This can potentially be your point of departure. Use _Client_ and _Peer_ and come up with your own state solution. Except bug fixes the intention is for those structs/API to remain dormant.
+The methods of _Client_ and _Peer_ structs are purposefully small and simple. Both provide a `Relays` field that can produce listeners for all incoming messages. Think of them as routers for incoming messages. This can potentially be your point of departure. Use _Client_ and _Peer_ and come up with your own state solution. Except bug fixes the intention is for those structs/API to remain dormant.
 
 ### State
 
@@ -73,7 +73,7 @@ _State_ struct is where the "business logic" lives. Besides the public methods i
 
 ## Tests
 
-The library is covered via unit and integration tests. Running the `-short` test suite will result in running the unit tests. The integration tests need [Soulfind](https://github.com/soulfind-dev/soulfind) instance (check the `/testdata/Dockerfile.soulfind` for more) running. For convenience you can just `docker run --rm -it -p 2242:2242 ghcr.io/bh90210/soul:latest` and it will spin a Soulfind enabled container.
+The library is covered via unit and integration tests. Running the `-short` test suite will result in running the unit tests. The integration tests need [Soulfind](https://github.com/soulfind-dev/soulfind) (check the `/testdata/Dockerfile.soulfind` for more) running. For convenience you can just `docker run --rm -it -p 2242:2242 ghcr.io/bh90210/soul:latest` and it will spin a Soulfind enabled container.
 
 Units cover all connection types' serialization/deserialization and internal packages.
 
@@ -89,10 +89,12 @@ Fork of [goose](https://github.com/a-cordier/goose). Thanks to `a-cordier` for s
 
 If this library was not what you were looking for consider checking out [spotseek](https://github.com/boristopalov/spotseek).
 
+Shout-out to [slskd](https://github.com/slskd/slskd), it immensely helped with testing the implementation.
 
 # TODO
-- [ ] finish server tests + documentation
-- [ ] client integration tests
-- [ ] incoming search/file requests via state (distributed+server)
+- [ ] finish respond
+- [ ] finish upload
+- [ ] finish directory/folder peer responses
+- [ ] client integration tests (login-search-download -> login-respond to search-upload, all server messages)
 - [ ] search code for outstanding TODOs
-- [ ] release v1.1.1
+- [ ] release v1.2.0

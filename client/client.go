@@ -13,6 +13,7 @@ import (
 
 	"github.com/bh90210/soul/peer"
 	"github.com/bh90210/soul/server"
+	"github.com/ipsn/go-adorable"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -77,6 +78,8 @@ type Config struct {
 	MaxFileConnections int64
 	AcceptChildren     bool
 	MaxChildren        int
+	Description        string
+	Picture            []byte
 }
 
 func DefaultConfig() *Config {
@@ -94,20 +97,20 @@ func DefaultConfig() *Config {
 		DownloadFolder:     os.TempDir(),
 		MaxPeers:           100,
 		MaxFileConnections: 20,
-		MaxChildren:        50,
 		AcceptChildren:     true,
+		MaxChildren:        50,
+		Description:        "Soul client",
+		Picture:            adorable.Random(),
 	}
 }
 
 // New connects to the server. It uses the values in the Config.
-func New(conf ...*Config) (*Client, error) {
-	c := &Client{
-		config: DefaultConfig(),
+func New(conf *Config) (*Client, error) {
+	if conf == nil {
+		return nil, errors.New("config is nil")
 	}
 
-	if len(conf) > 0 {
-		c.config = conf[0]
-	}
+	c := &Client{config: conf}
 
 	c.log = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	c.log = c.log.Level(c.config.LogLevel)

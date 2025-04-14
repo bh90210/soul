@@ -44,15 +44,18 @@ type Code interface {
 // and the code of the message. It then reads the message from the connection and
 // returns the message, the size of the message, the code of the message and an error.
 func MessageRead[C Code](c C, connection io.Reader, obfuscated bool) (message *bytes.Buffer, size uint32, code C, err error) {
-	var initOrDistributed bool
+	// Init and Distributed messages use uint8 for the code part of the message
+	// and thus they need to be handled differently.
+	var isInitOrDistributed bool
+
 	switch any(c).(type) {
 	case CodePeerInit, CodeDistributed:
-		initOrDistributed = true
+		isInitOrDistributed = true
 	}
 
 	if obfuscated {
 		var c CodePeer
-		message, size, c, err = deobfuscate(connection, initOrDistributed)
+		message, size, c, err = deobfuscate(connection, isInitOrDistributed)
 		if err != nil {
 			return
 		}
@@ -79,7 +82,7 @@ func MessageRead[C Code](c C, connection io.Reader, obfuscated bool) (message *b
 
 	// Read the code of the message.
 	var readAlready int64
-	switch initOrDistributed {
+	switch isInitOrDistributed {
 	case true:
 		var c uint8
 		c, err = ReadUint8(messageHeader)
@@ -123,7 +126,7 @@ func MessageRead[C Code](c C, connection io.Reader, obfuscated bool) (message *b
 	return
 }
 
-func deobfuscate(connection io.Reader, init bool) (message *bytes.Buffer, size uint32, code CodePeer, err error) {
+func deobfuscate(connection io.Reader, isInit bool) (message *bytes.Buffer, size uint32, code CodePeer, err error) {
 	message = new(bytes.Buffer)
 
 	// Directly read from the connection to the key buffer.
@@ -140,7 +143,7 @@ func deobfuscate(connection io.Reader, init bool) (message *bytes.Buffer, size u
 
 	var readSoFar int64
 	for l := 0; ; l++ {
-		// Convert it to big-endian integer.
+		// Convert key to big-endian integer.
 		var bigKey uint32
 		err = binary.Read(key, binary.LittleEndian, &bigKey)
 		if err != nil {
@@ -157,6 +160,7 @@ func deobfuscate(connection io.Reader, init bool) (message *bytes.Buffer, size u
 			return
 		}
 
+		// Store the new key for the next iteration.
 		key.Reset()
 		key.Write(rotatedKey.Bytes())
 
@@ -203,7 +207,7 @@ func deobfuscate(connection io.Reader, init bool) (message *bytes.Buffer, size u
 
 		// Code.
 		case 1:
-			if init {
+			if isInit {
 				var c uint8
 				c, err = ReadUint8(bytes.NewBuffer(deobfuscated4bytes.Bytes()))
 				if err != nil {
@@ -243,7 +247,7 @@ func deobfuscate(connection io.Reader, init bool) (message *bytes.Buffer, size u
 
 			readSoFar += int64(n)
 
-			// If there are less than 4 bytes left to read, we read the remaining bytes.
+			// If there are less than 4 bytes left to read, change the length variable (default 4) to reflect the fact.
 			if (size - uint32(readSoFar)) < 4 {
 				length = int64(size) - readSoFar
 			}

@@ -64,12 +64,10 @@ func (c *ConnectToPeer) Deserialize(reader io.Reader) error {
 			fmt.Errorf("expected code %d, got %d", CodeConnectToPeer, code))
 	}
 
-	username, err := internal.ReadString(reader)
+	c.Username, err = internal.ReadString(reader)
 	if err != nil {
 		return err
 	}
-
-	c.Username = username
 
 	connType, err := internal.ReadString(reader)
 	if err != nil {
@@ -96,11 +94,6 @@ func (c *ConnectToPeer) Deserialize(reader io.Reader) error {
 	}
 
 	c.Privileged, err = internal.ReadBool(reader)
-	if err != nil {
-		return err
-	}
-
-	_, err = internal.ReadUint32(reader)
 	if err != nil {
 		return err
 	}

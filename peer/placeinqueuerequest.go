@@ -19,7 +19,7 @@ type PlaceInQueueRequest struct {
 }
 
 // Serialize accepts a PlaceInQueueRequest and returns a message packed as a byte slice.
-func (PlaceInQueueRequest) Serialize(message *PlaceInQueueRequest) ([]byte, error) {
+func (p *PlaceInQueueRequest) Serialize(message *PlaceInQueueRequest) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	err := internal.WriteUint32(buf, uint32(CodePlaceInQueueRequest))

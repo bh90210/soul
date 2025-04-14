@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,12 +28,23 @@ import (
 // HundredKb 100Kb is the size of the buffer for file downloads.
 const HundredKb = 100000
 
+// QueueUpload is the message sent to the upload queue.
+type QueueUpload struct {
+	Filename string
+	Peer     *Peer
+}
+
 // State represents the client state.
 type State struct {
-	client   *Client
-	searches map[soul.Token]chan *File
-	peers    map[string]*Peer // TODO: Periodically empty.
-	mu       sync.RWMutex
+	Incoming chan *Search
+
+	client               *Client
+	searches             map[soul.Token]chan *File
+	peers                map[string]*Peer // TODO: Periodically empty.
+	addToQueue           chan *QueueUpload
+	queuePositionRequest chan func(place int) error
+	queueSizeRequest     chan chan int
+	mu                   sync.RWMutex
 
 	connectedP int64
 	connectedF int64
@@ -48,9 +60,13 @@ type State struct {
 // NewState returns a new State.
 func NewState(c *Client) *State {
 	s := &State{
-		client:   c,
-		searches: make(map[soul.Token]chan *File),
-		peers:    make(map[string]*Peer),
+		Incoming:             make(chan *Search),
+		client:               c,
+		searches:             make(map[soul.Token]chan *File),
+		peers:                make(map[string]*Peer),
+		addToQueue:           make(chan *QueueUpload),
+		queuePositionRequest: make(chan func(place int) error),
+		queueSizeRequest:     make(chan chan int),
 	}
 
 	s.log = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
@@ -215,12 +231,15 @@ func (s *State) Login(ctx context.Context) error {
 
 	<-ctxI.Done()
 
+	// Once we are logged in to the server, start processing incoming messages from server and peers.
 	go s.peer(ctx)
 	go s.server(ctx)
+	go s.queue(ctx)
 
 	return nil
 }
 
+// File represents a file to be downloaded.
 type File struct {
 	Username string
 	Token    soul.Token
@@ -259,11 +278,15 @@ func (s *State) Search(ctx context.Context, query string, token soul.Token) (res
 	return
 }
 
+// Status represents the status of a file transfer.
 type Status string
 
 const (
-	StatusQueued   Status = "queued"
+	// StatusQueued indicates that the file is queued for download.
+	StatusQueued Status = "queued"
+	// StatusStarting indicates that the file is starting to download.
 	StatusStarting Status = "starting"
+	// StatusReceived indicates that the file has been received.
 	StatusReceived Status = "received"
 )
 
@@ -272,14 +295,13 @@ var ErrNoPeer = errors.New("no peer")
 
 // Download sends download message to the server and listens for the responses.
 func (s *State) Download(ctx context.Context, f *File) (status chan string, e chan error) {
-	// Set the status and error channels.
-	status = make(chan string, 10)
-	e = make(chan error, 1)
-
 	// Try find the the username of the file to download among the peers.
 	s.mu.RLock()
 	p, found := s.peers[f.Username]
 	s.mu.RUnlock()
+
+	status = make(chan string, 10)
+	e = make(chan error, 1)
 
 	// If the peer is not found, return an error.
 	if !found {
@@ -287,6 +309,12 @@ func (s *State) Download(ctx context.Context, f *File) (status chan string, e ch
 		return
 	}
 
+	go s.download(ctx, p, f, status, e)
+
+	return
+}
+
+func (s *State) download(ctx context.Context, p *Peer, f *File, status chan string, e chan error) {
 	// Init peer listeners relating to the file transfer.
 	tRequest := p.Relays.TransferRequest.Listener(1)
 	defer tRequest.Close()
@@ -296,6 +324,9 @@ func (s *State) Download(ctx context.Context, f *File) (status chan string, e ch
 
 	denied := p.Relays.UploadDenied.Listener(1)
 	defer denied.Close()
+
+	placeInQueue := p.Relays.PlaceInQueueResponse.Listener(1)
+	defer p.Relays.PlaceInQueueResponse.Close()
 
 	go func() {
 		for {
@@ -324,136 +355,724 @@ func (s *State) Download(ctx context.Context, f *File) (status chan string, e ch
 				return
 
 			case m := <-denied.Ch():
-				e <- m.Reason
-				return
+				if m != nil {
+					e <- m.Reason
+					return
+				}
 			}
 		}
 	}()
 
-	if found {
-		sl := s.log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Str(fmt.Sprintf("%v", f.Token), f.Name).Logger()
+	sl := s.log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Str(fmt.Sprintf("%v", f.Token), f.Name).Logger()
 
-		sl.Debug().Msg("queue upload")
+	sl.Debug().Msg("queue upload")
 
-		// Send the peer the queue upload message.
-		conn, obfuscated := p.Conn(peer.ConnectionType)
-		_, err := peer.Write(conn, &peer.QueueUpload{Filename: f.Name}, obfuscated)
-		if err != nil {
-			e <- err
-			return
-		}
-
-		status <- string(StatusQueued)
-
-		sl.Debug().Msg("waiting transfer request")
-
-		// When peer is ready to start the file transfer, it sends a transfer request.
-		transfer := <-tRequest.Ch()
-
-		sl.Debug().Msg("transfer response")
-
-		// We reply to the transfer request with a transfer response.
-		_, err = peer.Write(conn, &peer.TransferResponse{Token: transfer.Token, Allowed: true}, obfuscated)
-		if err != nil {
-			e <- err
-			return
-		}
-
-		// Stat for the destination file.
-		info, err := os.Stat(path.Join(s.client.config.DownloadFolder, f.Name))
-		if err != nil {
-			if !os.IsNotExist(err) {
-				e <- err
-				return
-			}
-		}
-
-		var localFile *os.File
-		// If file does not exist, create it and pass 0 to the offset.
-		if os.IsNotExist(err) {
-			localFile, err = os.Create(path.Join(s.client.config.DownloadFolder, f.Name))
-			if err != nil {
-				e <- err
-				return
-			}
-
-			defer localFile.Close()
-
-		} else {
-			// If file exists count the length and pass it to the offset.
-			localFile, err = os.OpenFile(path.Join(s.client.config.DownloadFolder, f.Name), os.O_RDWR, 0644)
-			if err != nil {
-				e <- err
-				return
-			}
-
-			info, err = localFile.Stat()
-			if err != nil {
-				e <- err
-				return
-			}
-
-			_, err = localFile.Seek(0, io.SeekEnd)
-			if err != nil {
-				e <- err
-				return
-			}
-		}
-
-		status <- string(StatusStarting)
-
-		var fileConn net.Conn
-		for {
-			select {
-			case <-ctx.Done():
-				e <- errors.New("context done before file F connection")
-				return
-
-			default:
-				fileConn, _ = p.Conn(file.ConnectionType, transfer.Token)
-				if fileConn == nil {
-					time.Sleep(time.Second)
-				}
-			}
-
-			if fileConn != nil {
-				break
-			}
-		}
-
-		s.log.Debug().Int64("offset", info.Size()).Msg("sending offset")
-
-		_, err = file.Write(fileConn, &file.Offset{Offset: uint64(info.Size())})
-		if err != nil {
-			e <- err
-			return
-		}
-
-		var readSoFar int64
-		for {
-			n, err := io.CopyN(localFile, fileConn, HundredKb)
-			if err != nil && !errors.Is(err, io.EOF) {
-				e <- err
-				return
-			}
-
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
-			readSoFar += n
-
-			status <- fmt.Sprintf("%v%%", readSoFar*100/int64(f.Size))
-		}
-
-		sl.Debug().Msg("file download")
-
-		status <- string(StatusReceived)
-
+	// Send the peer the queue upload message.
+	conn, obfuscated := p.Conn(peer.ConnectionType)
+	_, err := peer.Write(conn, &peer.QueueUpload{Filename: f.Name}, obfuscated)
+	if err != nil {
+		e <- err
 		return
 	}
 
+	if conn == nil {
+		sl.Warn().Msg("no connection")
+		e <- errors.New("no connection")
+		return
+	}
+
+	status <- string(StatusQueued)
+
+	// Send a place queue request.
+	_, err = peer.Write(conn, &peer.PlaceInQueueRequest{Filename: f.Name}, obfuscated)
+
+	sl.Debug().Msg("waiting transfer request")
+
+	// When peer is ready to start the file transfer, it sends a transfer request.
+	var transfer *peer.TransferRequest
+	for {
+		var transferRequest bool
+
+		select {
+		case <-ctx.Done():
+			sl.Warn().Msg("context done")
+			return
+
+		case piq := <-placeInQueue.Ch():
+			sl.Debug().Msg("place in queue")
+			if piq.Filename != f.Name {
+				continue
+			}
+
+			status <- fmt.Sprint(piq.Place)
+
+		case transfer = <-tRequest.Ch():
+			if transfer.Filename != f.Name {
+				continue
+			}
+
+			transferRequest = true
+		}
+
+		if transferRequest {
+			sl.Debug().Msg("transfer request")
+			break
+		}
+	}
+
+	sl.Debug().Msg("transfer response")
+
+	// We reply to the transfer request with a transfer response.
+	_, err = peer.Write(conn, &peer.TransferResponse{
+		Token:   transfer.Token,
+		Allowed: true,
+	}, obfuscated)
+	if err != nil {
+		e <- err
+		return
+	}
+
+	filepath := path.Join(s.client.config.DownloadFolder, path.Base(f.Name))
+
+	sl.Debug().Str("path", filepath).Msg("transfer response sent")
+
+	// Stat for the destination file.
+	info, err := os.Stat(filepath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			e <- err
+			return
+		}
+	}
+
+	var localFile *os.File
+	// If file does not exist, create it and pass 0 to the offset.
+	if os.IsNotExist(err) {
+		sl.Debug().Msg("file does not exist")
+
+		localFile, err = os.Create(filepath)
+		if err != nil {
+			sl.Debug().Msg(err.Error())
+			e <- err
+			return
+		}
+
+		defer localFile.Close()
+
+		info, err = localFile.Stat()
+		if err != nil {
+			e <- err
+			return
+		}
+
+	} else {
+		// If file exists count the length and pass it to the offset.
+		sl.Debug().Msg("file exists")
+
+		localFile, err = os.OpenFile(filepath, os.O_RDWR, 0644)
+		if err != nil {
+			e <- err
+			return
+		}
+
+		defer localFile.Close()
+
+		info, err = localFile.Stat()
+		if err != nil {
+			e <- err
+			return
+		}
+
+		_, err = localFile.Seek(0, io.SeekEnd)
+		if err != nil {
+			e <- err
+			return
+		}
+	}
+
+	s.log.Debug().Any("info", info).Msg("file info")
+
+	status <- string(StatusStarting)
+
+	var fileConn net.Conn
+	for {
+		select {
+		case <-ctx.Done():
+			e <- errors.New("context done before file F connection")
+			return
+
+		default:
+			fileConn, _ = p.Conn(file.ConnectionType, transfer.Token)
+			if fileConn == nil {
+				time.Sleep(time.Second)
+			}
+		}
+
+		if fileConn != nil {
+			defer fileConn.Close()
+			break
+		}
+
+		sl.Debug().Msg("waiting for file connection")
+	}
+
+	sl.Debug().Int64("offset", info.Size()).Msg("sending offset")
+
+	_, err = file.Write(fileConn, &file.Offset{Offset: uint64(info.Size())})
+	if err != nil {
+		e <- err
+		return
+	}
+
+	sl.Debug().Msg("offset sent")
+
+	var readSoFar int64
+	for {
+		n, err := io.CopyN(localFile, fileConn, HundredKb)
+		if err != nil && !errors.Is(err, io.EOF) {
+			e <- err
+			return
+		}
+
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		readSoFar += n
+
+		if readSoFar == int64(f.Size) {
+			break
+		}
+
+		status <- fmt.Sprintf("%v%%", readSoFar*100/int64(f.Size))
+	}
+
+	sl.Debug().Msg("CopyN exited")
+
+	status <- string(StatusReceived)
+
 	return
+}
+
+// ErrNoFiles is returned when no files are found.
+var ErrNoFiles = errors.New("no files")
+
+// ErrNoUsername is returned when no username is found.
+var ErrNoUsername = errors.New("no username")
+
+// ErrNoToken is returned when no token is found.
+var ErrNoToken = errors.New("no token")
+
+// Respond sends a response to the search request.
+func (s *State) Respond(ctx context.Context, files []*File) error {
+	s.log.Debug().Any("files", files).Msg("respond")
+
+	if len(files) == 0 {
+		return ErrNoFiles
+	}
+
+	username := files[0].Username
+	if username == "" {
+		return ErrNoUsername
+	}
+
+	token := files[0].Token
+	if token == 0 {
+		return ErrNoToken
+	}
+
+	// Search for peer.
+	s.mu.RLock()
+	p, ok := s.peers[username]
+	s.mu.RUnlock()
+
+	// If the peer is not found try to connect.
+	if !ok {
+		// Open a GetPeerAddress listener.
+		gpa := s.client.Relays.GetPeerAddress.Listener(1)
+		defer gpa.Close()
+
+		// Let the server know the username we need the address for.
+		_, err := server.Write(s.client.Conn(), &server.GetPeerAddress{Username: username})
+		if err != nil {
+			return err
+		}
+
+		// The listener may receive multiple addresses,
+		// so we need to find the one that matches the username.
+		var address *server.GetPeerAddress
+		for {
+			var found bool
+			select {
+			case <-ctx.Done():
+				return errors.New("context done")
+
+			case a := <-gpa.Ch():
+				if a.Username != username {
+					continue
+				}
+
+				address = a
+				found = true
+				break
+			}
+
+			if found {
+				break
+			}
+		}
+
+		var port int
+		if address.ObfuscatedPort != 0 {
+			port = address.ObfuscatedPort
+		} else {
+			port = address.Port
+		}
+
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%v", address.IP.String(), port))
+		if err != nil {
+			s.log.Warn().Err(err).Msg("respond direct connection")
+
+			for {
+				_, err = server.Write(s.client.Conn(), &server.ConnectToPeer{
+					Token:    token,
+					Username: username,
+					Type:     peer.ConnectionType,
+				})
+				if err != nil {
+					s.log.Warn().Err(err).Msg("respond indirect connection")
+					return err
+				}
+
+				s.log.Debug().Msg("waiting for peer to connect")
+
+				var connected bool
+				select {
+				case <-ctx.Done():
+					return errors.New("context done")
+
+				default:
+					s.mu.RLock()
+					p, ok = s.peers[username]
+					s.mu.RUnlock()
+
+					if ok {
+						connected = true
+						break
+					}
+				}
+
+				if connected {
+					break
+				}
+
+				time.Sleep(5 * time.Second)
+			}
+		} else {
+			s.mu.Lock()
+			p, ok = s.peers[username]
+			if !ok {
+				p = NewPeer(s.client.config, &peer.PeerInit{
+					Username:       username,
+					ConnectionType: peer.ConnectionType,
+				})
+			}
+
+			p.ip = address.IP
+			p.port = address.Port
+			p.obfuscatedPort = address.ObfuscatedPort
+
+			s.peers[p.username] = p
+			s.mu.Unlock()
+
+			s.initializers(ctx, peer.ConnectionType, p, conn, address.ObfuscatedPort != 0, s.log)
+
+			_, err = peer.Write(conn, &peer.PeerInit{
+				Username:       s.client.config.Username,
+				ConnectionType: peer.ConnectionType,
+			}, address.ObfuscatedPort != 0)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	conn, obfuscated := p.Conn(peer.ConnectionType)
+	if conn == nil {
+		return errors.New("no connection")
+	}
+
+	var results []peer.File
+	for _, f := range files {
+		results = append(results, *f.File)
+	}
+
+	// Peers may or may not have an active peer type connection at the time of this request.
+	// So we need to account for that. We will be trying to reconnect until context is done or
+	// an unrecoverable error occurs.
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.New("context done")
+
+		default:
+			// Try sending the response to peer.
+			_, err := peer.Write(conn, &peer.FileSearchResponse{
+				Username: s.client.config.Username,
+				Token:    token,
+				Results:  results,
+				FreeSlot: true,
+				Queue:    0,
+			}, obfuscated)
+			if err != nil {
+				// If we fail because the connection is closed, we try to reconnect.
+				if strings.Contains(err.Error(), "use of closed network connection") {
+					// We try to directly reconnect to peer.
+					err = s.connect(ctx, username, token)
+					if err != nil {
+						s.log.Warn().Err(err).Msg("reconnect")
+					}
+
+					conn, obfuscated = p.Conn(peer.ConnectionType)
+					continue
+				} else {
+					return fmt.Errorf("file search response: %w", err)
+				}
+			}
+
+			return nil
+		}
+	}
+}
+
+func (s *State) reconnect(ctx context.Context, username string, token soul.Token) error {
+	return nil
+}
+
+func (s *State) connect(ctx context.Context, username string, token soul.Token) error {
+	// Search for peer.
+	s.mu.RLock()
+	p, ok := s.peers[username]
+	s.mu.RUnlock()
+
+	var address *server.GetPeerAddress
+	// If the peer is not found try to connect.
+	if !ok {
+		// Open a GetPeerAddress listener.
+		gpa := s.client.Relays.GetPeerAddress.Listener(1)
+		defer gpa.Close()
+
+		// Let the server know the username we need the address for.
+		_, err := server.Write(s.client.Conn(), &server.GetPeerAddress{Username: username})
+		if err != nil {
+			return err
+		}
+
+		// The listener may receive multiple addresses,
+		// so we need to find the one that matches the username.
+		for {
+			var found bool
+			select {
+			case <-ctx.Done():
+				return errors.New("context done")
+
+			case a := <-gpa.Ch():
+				if a.Username != username {
+					continue
+				}
+
+				address = a
+				found = true
+				break
+			}
+
+			if found {
+				break
+			}
+		}
+	} else {
+		// If the peer is found, we need to get the address from it.
+		address = &server.GetPeerAddress{
+			Username:       username,
+			IP:             p.ip,
+			Port:           p.port,
+			ObfuscatedPort: p.obfuscatedPort,
+		}
+
+		go p.cancel()
+	}
+
+	obfuscated := address.ObfuscatedPort != 0
+
+	var port int
+	if obfuscated {
+		port = address.ObfuscatedPort
+	} else {
+		port = address.Port
+	}
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%v", address.IP.String(), port))
+	if err != nil {
+		// if we fail to directly connect to peer, we send the peer via the server an indirect connection request.
+		ui := p.Relays.UserInfoResponse.Listener(1)
+		defer ui.Close()
+
+		for {
+
+			_, err = server.Write(s.client.Conn(), &server.ConnectToPeer{
+				Token:    token,
+				Username: username,
+				Type:     peer.ConnectionType,
+			})
+			if err != nil {
+				s.log.Warn().Err(err).Msg("respond indirect connection")
+				return err
+			}
+
+			s.log.Debug().Msg("waiting for peer to connect")
+
+			var connected bool
+			select {
+			case <-ctx.Done():
+				return errors.New("context done")
+
+			case <-ui.Ch():
+				connected = true
+
+			default:
+				_, err = peer.Write(conn, &peer.UserInfoRequest{}, obfuscated)
+				if err != nil {
+					s.log.Warn().Err(err).Msg("user info request")
+					continue
+				}
+
+			}
+
+			if connected {
+				break
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	s.mu.Lock()
+	// p, ok = s.peers[username]
+	// if !ok {
+	// 	p = NewPeer(s.client.config, &peer.PeerInit{
+	// 		Username:       username,
+	// 		ConnectionType: peer.ConnectionType,
+	// 	})
+	// }
+
+	// p.ip = address.IP
+	// p.port = address.Port
+	// p.obfuscatedPort = address.ObfuscatedPort
+
+	s.peers[p.username] = p
+	s.mu.Unlock()
+
+	// TODO: this may be problematic at this point in the process.
+	s.initializers(ctx, peer.ConnectionType, p, conn, obfuscated, s.log)
+
+	_, err = peer.Write(conn, &peer.PeerInit{
+		Username:       s.client.config.Username,
+		ConnectionType: peer.ConnectionType,
+	}, obfuscated)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *State) queue(ctx context.Context) {
+	pl := s.log.With().Str("process", "queue").Logger()
+
+	var queue []*QueueUpload
+	var mu sync.RWMutex
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			case que := <-s.addToQueue:
+				pl.Debug().Any("queue", que).Msg("add to queue")
+
+				var alreadyInQueue bool
+				mu.Lock()
+				for _, v := range queue {
+					if v.Filename == que.Filename && v.Peer.username == que.Peer.username {
+						alreadyInQueue = true
+						break
+					}
+				}
+
+				if !alreadyInQueue {
+					queue = append(queue, que)
+				}
+				mu.Unlock()
+
+			case piq := <-s.queuePositionRequest:
+				err := piq(len(queue)) // TODO: finish me.
+				if err != nil {
+					pl.Warn().Any("place in queue", piq).Err(err).Msg("queue position request")
+					continue
+				}
+
+			case replyChannel := <-s.queueSizeRequest:
+				replyChannel <- len(queue)
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		default:
+			mu.RLock()
+			noQueue := len(queue) == 0
+			mu.RUnlock()
+
+			if noQueue {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+
+			// Check if we reached the max number of file connections.
+			s.max(file.ConnectionType)
+
+			go func() {
+				// Pop the first file from the upload queue.
+				mu.Lock()
+				que := queue[0]
+				queue = queue[1:]
+				mu.Unlock()
+
+				token := soul.NewToken()
+
+				ul := s.log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Str("file", que.Filename).Str("peer", que.Peer.username).Uint32("token", uint32(token)).Logger()
+
+				transferResponse := que.Peer.Relays.TransferResponse.Listener(0)
+				defer transferResponse.Close()
+
+				localFile, err := os.OpenFile(que.Filename, os.O_RDONLY, 0644)
+				if err != nil {
+					ul.Warn().Err(err).Msg("open file")
+					return
+				}
+
+				defer localFile.Close()
+
+				info, err := localFile.Stat()
+				if err != nil {
+					ul.Warn().Err(err).Msg("stat file")
+					return
+				}
+
+				conn, obfuscated := que.Peer.Conn(peer.ConnectionType)
+				if conn == nil { // TODO: finish me.
+				}
+
+				_, err = peer.Write(conn, &peer.TransferRequest{
+					Direction: peer.UploadToPeer,
+					Token:     token,
+					Filename:  info.Name(),
+					FileSize:  uint64(info.Size()),
+				}, obfuscated)
+				if err != nil {
+					ul.Warn().Err(err).Msg("transfer request")
+					return
+				}
+
+				var tResponse *peer.TransferResponse
+				for {
+					var moveOn bool
+
+					select {
+					case <-ctx.Done():
+						return
+
+					case tResponse = <-transferResponse.Ch():
+						if tResponse.Token != token {
+							continue
+						}
+
+						if !tResponse.Allowed {
+							ul.Warn().Err(tResponse.Reason).Msg("transfer response")
+							return
+						}
+
+						moveOn = true
+					}
+
+					if moveOn {
+						break
+					}
+				}
+
+				s.log.Debug().Any("response", tResponse).Msg("response")
+
+				conn, err = net.Dial("tcp", fmt.Sprintf("%s:%v", que.Peer.ip.String(), que.Peer.port))
+				if err != nil {
+					ul.Warn().Err(err).Msg("dial")
+					return
+				}
+
+				_, err = peer.Write(conn, &peer.PeerInit{
+					Username:       s.client.config.Username,
+					ConnectionType: file.ConnectionType,
+				}, false)
+				if err != nil {
+					ul.Warn().Err(err).Msg("peer init")
+					return
+				}
+
+				_, err = file.Write(conn, &file.TransferInit{Token: token})
+				if err != nil {
+					ul.Warn().Err(err).Msg("transfer init")
+					return
+				}
+
+				s.log.Debug().Msg("transfer init")
+
+				offset := new(file.Offset)
+				err = offset.Deserialize(conn)
+				if err != nil {
+					ul.Warn().Err(err).Msg("offset")
+					return
+				}
+
+				s.log.Debug().Any("off", offset).Msg("offset")
+
+				// Send the file.
+				n, err := localFile.Seek(int64(offset.Offset), io.SeekCurrent)
+				if err != nil {
+					ul.Warn().Err(err).Msg("seek")
+					return
+				}
+
+				if n != int64(offset.Offset) {
+					ul.Warn().Int64("n", n).Uint64("offset", offset.Offset).Msg("seek not equal")
+					return
+				}
+
+				s.log.Debug().Uint64("offset", offset.Offset).Int64("file size", info.Size()).Msg("sending file")
+
+				_, err = io.CopyN(conn, localFile, info.Size())
+				if err != nil && !errors.Is(err, io.EOF) {
+					ul.Warn().Err(err).Msg("copy")
+					return
+				}
+
+				conn.Close()
+			}()
+		}
+	}
 }
 
 func (s *State) count(ctx context.Context, connType soul.ConnectionType, p *Peer) {
@@ -527,6 +1146,7 @@ func (s *State) max(connType soul.ConnectionType) {
 		for {
 			s.mu.RLock()
 			ok := s.connectedF < s.client.config.MaxFileConnections
+			s.log.Debug().Int64("connectedF", s.connectedF).Int64("max", s.client.config.MaxFileConnections).Msg("max")
 			s.mu.RUnlock()
 
 			if ok {
@@ -571,25 +1191,25 @@ func (s *State) server(ctx context.Context) {
 
 		case status := <-statusListener.Ch():
 			s.mu.Lock()
+			defer s.mu.Unlock()
+
 			p, ok := s.peers[status.Username]
 			if ok {
 				p.status = status.Status
 				p.privileged = status.Privileged
-				s.mu.Unlock()
 			} else {
-				s.mu.Unlock()
 				s.log.Warn().Str("status", status.Status.String()).Str("username", status.Username).Msg("peer not found")
 			}
 
 		case stats := <-statsListener.Ch():
 			s.mu.Lock()
+			defer s.mu.Unlock()
+
 			p, ok := s.peers[stats.Username]
 			if ok {
 				p.averageSpeed = stats.Speed
 				p.queued = stats.Uploads
-				s.mu.Unlock()
 			} else {
-				s.mu.Unlock()
 				s.log.Warn().Any("stats", stats).Msg("peer not found")
 			}
 
@@ -625,19 +1245,24 @@ func (s *State) server(ctx context.Context) {
 			s.log.Debug().Any("watch", watch).Msg("watch")
 
 			s.mu.Lock()
+			defer s.mu.Unlock()
+
 			p, ok := s.peers[watch.Username]
 			if ok {
 				p.status = watch.Status
 				p.averageSpeed = watch.AverageSpeed
 				p.queued = watch.UploadNumber
-				s.mu.Unlock()
 			} else {
-				s.mu.Unlock()
 				s.log.Warn().Any("watch", watch).Msg("peer not found")
 			}
 
 		case search := <-search.Ch():
-			go s.responseS(search)
+			// We do not want to respond to our own search.
+			if search.Username == s.client.config.Username {
+				continue
+			}
+
+			go s.serverSearchResponse(search)
 
 			// We are root in our distributed branch.
 		case embed := <-embed.Ch():
@@ -689,13 +1314,18 @@ func (s *State) peer(ctx context.Context) {
 		case <-ctx.Done():
 			return
 
-			// TODO: finish me.
 		// We made an indirect connection request to a peer.
-		// case firewall := <-s.client.Firewall:
+		case firewall := <-s.client.Firewall:
+			s.log.Debug().Any("firewall", firewall).Msg("firewall")
 
 		// Peer directly connects to us.
 		case init := <-s.client.Init:
 			go func(init *PeerInit) {
+				if init.Username == s.client.config.Username {
+					s.log.Debug().Msg("can't connect to self")
+					return
+				}
+
 				s.max(init.ConnectionType)
 
 				il := s.log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().
@@ -722,6 +1352,11 @@ func (s *State) peer(ctx context.Context) {
 		// Peer indirectly connects to us.
 		case connect := <-connect.Ch():
 			go func(connect *server.ConnectToPeer) {
+				if connect.Username == s.client.config.Username {
+					s.log.Debug().Msg("can't connect to self")
+					return
+				}
+
 				s.max(connect.Type)
 
 				var useObfuscatedPort bool
@@ -795,7 +1430,8 @@ func (s *State) initializers(ctx context.Context, connType soul.ConnectionType, 
 	// The previous fileResponse, if any, is cancelled in the Logic step (or NewPeer)
 	// if the connection is of peer P. Thus it is safe to start a new one here.
 	case peer.ConnectionType:
-		go s.fileResponse(p)
+		go s.fileSearchResponse(p)
+		go s.peerRequests(p)
 
 	// If the connection is of type D (distributed), we send the branch root and level
 	// to the peer.
@@ -898,24 +1534,33 @@ func (s *State) distributed(m *server.PossibleParents) {
 
 			case branch := <-branch.Ch():
 				pl.Debug().Any("branch", branch).Msg("branch")
-				_, err = server.Write(s.client.Conn(), &server.BranchRoot{Root: branch.Root})
+
+				r := branch.Root
+
+				s.mu.Lock()
+				s.root = r
+				s.mu.Unlock()
+
+				_, err = server.Write(s.client.Conn(), &server.BranchRoot{Root: r})
 				if err != nil {
 					pl.Warn().Err(err).Msg("branch root")
 					continue
 				}
 
-				s.root = branch.Root
-
 			case level := <-level.Ch():
 				pl.Debug().Int32("level", level.Level).Msg("level")
 
-				_, err = server.Write(s.client.Conn(), &server.BranchLevel{Level: int(level.Level + 1)})
+				l := level.Level + 1
+
+				s.mu.Lock()
+				s.level = l
+				s.mu.Unlock()
+
+				_, err = server.Write(s.client.Conn(), &server.BranchLevel{Level: int(l)})
 				if err != nil {
 					pl.Warn().Err(err).Msg("branch level")
 					continue
 				}
-
-				s.level = level.Level + 1
 
 			// We are first child in our distributed branch.
 			case embed := <-embed.Ch():
@@ -988,33 +1633,33 @@ func (s *State) distributed(m *server.PossibleParents) {
 					s.mu.RUnlock()
 				}(search)
 
-				go s.responseD(search)
+				go s.distributedSearchResponse(search)
 			}
 		}
 	}
 }
 
-// fileResponse listens for file search responses from a peer and passes them on to the internal
+// fileSearchResponse listens for file search fileSearchResponse from a peer and passes them on to the internal
 // searches channel.
-func (s *State) fileResponse(p *Peer) {
-	response := p.Relays.FileSearchResponse.Listener(1)
-	defer response.Close()
+func (s *State) fileSearchResponse(p *Peer) {
+	fileSearch := p.Relays.FileSearchResponse.Listener(1)
+	defer fileSearch.Close()
 
 	for {
-		if p.ctx == nil {
+		p.mu.RLock()
+		ctx := p.ctx
+		p.mu.RUnlock()
+
+		if ctx == nil {
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 
-		break
-	}
-
-	for {
 		select {
-		case <-p.ctx.Done():
+		case <-ctx.Done():
 			return
 
-		case fileResponse := <-response.Ch():
+		case fileResponse := <-fileSearch.Ch():
 			s.mu.RLock()
 			channel, ok := s.searches[fileResponse.Token]
 			s.mu.RUnlock()
@@ -1046,20 +1691,140 @@ func (s *State) fileResponse(p *Peer) {
 	}
 }
 
-func (s *State) responseS(search *server.FileSearch) {
+func (s *State) peerRequests(p *Peer) {
+	prl := s.log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Str("peer request", p.username).Logger()
+
+	qu := p.Relays.QueueUpload.Listener(1)
+	defer qu.Close()
+
+	sfl := p.Relays.SharedFileListRequest.Listener(1)
+	defer sfl.Close()
+
+	ui := p.Relays.UserInfoRequest.Listener(1)
+	defer ui.Close()
+
+	fc := p.Relays.FolderContentsRequest.Listener(1)
+	defer fc.Close()
+
+	piq := p.Relays.PlaceInQueueRequest.Listener(1)
+	defer piq.Close()
+
+	for {
+		p.mu.RLock()
+		ctx := p.ctx
+		p.mu.RUnlock()
+
+		if ctx == nil {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+
+		case qu := <-qu.Ch():
+			prl.Debug().Any("qu", qu).Msg("queue upload request")
+
+			s.addToQueue <- &QueueUpload{
+				Filename: qu.Filename,
+				Peer:     p,
+			}
+
+		case sfl := <-sfl.Ch():
+			prl.Debug().Any("sfl", sfl).Msg("shared file list request")
+
+			conn, obfuscated := p.Conn(peer.ConnectionType)
+			_, err := peer.Write(conn, &peer.SharedFileListResponse{}, obfuscated) // TODO: finish me.
+			if err != nil {
+				prl.Warn().Err(err).Msg("shared file list response")
+				return
+			}
+
+			prl.Debug().Msg("shared file list response sent")
+
+		case <-ui.Ch():
+			prl.Debug().Msg("user info request")
+
+			queueSize := make(chan int)
+			s.queueSizeRequest <- queueSize
+			size := <-queueSize
+
+			conn, obfuscated := p.Conn(peer.ConnectionType)
+
+			_, err := peer.Write(conn, &peer.UserInfoResponse{
+				Description: s.client.config.Description,
+				Picture:     s.client.config.Picture,
+				TotalUpload: uint32(s.client.config.MaxFileConnections),
+				QueueSize:   uint32(size),
+				FreeSlots:   s.client.config.MaxFileConnections > s.connectedF,
+			}, obfuscated)
+			if err != nil {
+				prl.Warn().Err(err).Msg("user info response")
+				return
+			}
+
+			prl.Debug().Msg("user info response sent")
+
+		case fc := <-fc.Ch():
+			prl.Debug().Any("fc", fc).Msg("folder contents request") // TODO: finish me.
+
+		case piq := <-piq.Ch():
+			prl.Debug().Any("piq", piq).Msg("place in queue request")
+
+			go func(piq *peer.PlaceInQueueRequest, p *Peer) {
+				s.queuePositionRequest <- func(place int) error {
+					s.mu.RLock()
+					defer s.mu.RUnlock()
+
+					conn, obfuscated := p.Conn(peer.ConnectionType)
+
+					_, err := peer.Write(conn, &peer.PlaceInQueueResponse{
+						Filename: piq.Filename,
+						Place:    uint32(place),
+					}, obfuscated)
+					if err != nil {
+						prl.Warn().Err(err).Msg("place in queue response")
+						return err
+					}
+
+					return nil
+				}
+			}(piq, p)
+		}
+	}
+}
+
+func (s *State) serverSearchResponse(search *server.FileSearch) {
 	s.response(nil, search)
 }
 
 // TODO: finish me Byron.
-func (s *State) responseD(search *distributed.Search) {
+func (s *State) distributedSearchResponse(search *distributed.Search) {
 	s.response(search, nil)
+}
+
+// Search is the search request sent to the client.
+type Search struct {
+	Username string
+	Token    soul.Token
+	Query    string
 }
 
 func (s *State) response(di *distributed.Search, se *server.FileSearch) {
 	switch {
 	case di != nil:
+		s.Incoming <- &Search{
+			Username: di.Username,
+			Token:    di.Token,
+			Query:    di.Query,
+		}
 
 	case se != nil:
-
+		s.Incoming <- &Search{
+			Username: se.Username,
+			Token:    se.Token,
+			Query:    se.SearchQuery,
+		}
 	}
 }
