@@ -5,6 +5,7 @@ go 1.22.0
 toolchain go1.22.2
 
 require (
+	github.com/charlievieth/fastwalk v1.0.10
 	github.com/gosuri/uilive v0.0.4
 	github.com/ipsn/go-adorable v1.0.0
 	github.com/matoous/go-nanoid/v2 v2.1.0

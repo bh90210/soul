@@ -39,12 +39,10 @@ type Peer struct {
 	obfuscated bool
 	ctx        context.Context
 	cancel     context.CancelFunc
-	queue      chan map[peer.Code]io.Reader
 
 	connD   net.Conn
 	ctxD    context.Context
 	cancelD context.CancelFunc
-	queueD  chan map[distributed.Code]io.Reader
 
 	muF   sync.RWMutex
 	connF map[soul.Token]net.Conn
@@ -58,8 +56,6 @@ func NewPeer(config *Config, message *peer.PeerInit) *Peer {
 		username: message.Username,
 		config:   config,
 		connF:    make(map[soul.Token]net.Conn),
-		queue:    make(chan map[peer.Code]io.Reader),
-		queueD:   make(chan map[distributed.Code]io.Reader),
 	}
 
 	p.log = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
@@ -72,7 +68,7 @@ func NewPeer(config *Config, message *peer.PeerInit) *Peer {
 }
 
 // New is the main logic for the peer.
-func (p *Peer) New(connType soul.ConnectionType, conn net.Conn, obfuscated bool) {
+func (p *Peer) New(connType soul.ConnectionType, conn net.Conn, obfuscated bool) (wg *sync.WaitGroup, ctx context.Context) {
 	switch connType {
 	case peer.ConnectionType:
 		p.mu.Lock()
@@ -85,15 +81,17 @@ func (p *Peer) New(connType soul.ConnectionType, conn net.Conn, obfuscated bool)
 		p.conn = conn
 		p.ctx, p.cancel = context.WithCancel(context.Background())
 		p.obfuscated = obfuscated
+		ctx = p.ctx
 		p.mu.Unlock()
 
-		go p.read(p.ctx, obfuscated)
-		go p.deserialize(p.ctx)
+		wg = &sync.WaitGroup{}
+		wg.Add(1)
+		go p.read(p.ctx, conn, obfuscated, wg)
 
-		go func() {
-			<-p.ctx.Done()
-			p.conn.Close()
-		}()
+		go func(conn net.Conn, ctx context.Context) {
+			<-ctx.Done()
+			conn.Close()
+		}(conn, p.ctx)
 
 	case distributed.ConnectionType:
 		p.mu.Lock()
@@ -106,12 +104,11 @@ func (p *Peer) New(connType soul.ConnectionType, conn net.Conn, obfuscated bool)
 		p.mu.Unlock()
 
 		go p.readD(p.ctxD)
-		go p.deserializeD(p.ctxD)
 
-		go func() {
-			<-p.ctxD.Done()
-			p.connD.Close()
-		}()
+		go func(conn net.Conn, ctx context.Context) {
+			<-ctx.Done()
+			conn.Close()
+		}(conn, p.ctxD)
 
 	case file.ConnectionType:
 		init := new(file.TransferInit)
@@ -127,6 +124,8 @@ func (p *Peer) New(connType soul.ConnectionType, conn net.Conn, obfuscated bool)
 
 		p.log.Info().Msg("file F connection")
 	}
+
+	return
 }
 
 // Conn returns the connection.
@@ -159,19 +158,19 @@ func (p *Peer) Conn(connType soul.ConnectionType, token ...soul.Token) (net.Conn
 	}
 }
 
-func (p *Peer) read(ctx context.Context, obfuscated bool) {
+func (p *Peer) read(ctx context.Context, conn net.Conn, obfuscated bool, wg *sync.WaitGroup) {
+	wg.Wait()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 
 		default:
-			p.mu.RLock()
-			r, size, code, err := peer.Read(peer.Code(0), p.conn, obfuscated)
-			p.mu.RUnlock()
+			r, size, code, err := peer.Read(peer.Code(0), conn, obfuscated)
 
 			if err != nil && !errors.Is(err, io.EOF) {
-				if errors.Is(err, net.ErrClosed) {
+				if errors.Is(err, net.ErrClosed) { // TODO: recheck this.
 					p.mu.RLock()
 					p.cancel()
 					p.mu.RUnlock()
@@ -190,7 +189,152 @@ func (p *Peer) read(ctx context.Context, obfuscated bool) {
 				continue
 			}
 
-			p.queue <- map[peer.Code]io.Reader{peer.Code(code): r}
+			go func(r io.Reader, code peer.Code) {
+				ctx, cancel := context.WithTimeout(context.Background(), p.config.Timeout)
+				defer cancel()
+
+				switch code {
+				case peer.CodeFileSearchResponse:
+					m := new(peer.FileSearchResponse)
+					err := m.Deserialize(r)
+					if err != nil && !errors.Is(err, io.EOF) {
+						p.log.Warn().Err(err).Msg("file search response deserialize")
+						return
+					}
+
+					p.Relays.FileSearchResponse.NotifyCtx(ctx, m)
+
+				case peer.CodeFolderContentsRequest:
+					m := new(peer.FolderContentsRequest)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("folder contents request deserialize")
+						return
+					}
+
+					p.Relays.FolderContentsRequest.NotifyCtx(ctx, m)
+
+				case peer.CodeFolderContentsResponse:
+					m := new(peer.FolderContentsResponse)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("folder contents response deserialize")
+						return
+					}
+
+					p.Relays.FolderContentsResponse.NotifyCtx(ctx, m)
+
+				case peer.CodePlaceInQueueRequest:
+					m := new(peer.PlaceInQueueRequest)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("place in queue request deserialize")
+						return
+					}
+
+					p.Relays.PlaceInQueueRequest.NotifyCtx(ctx, m)
+
+				case peer.CodePlaceInQueueResponse:
+					m := new(peer.PlaceInQueueResponse)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("place in queue response deserialize")
+						return
+					}
+
+					p.Relays.PlaceInQueueResponse.NotifyCtx(ctx, m)
+
+				case peer.CodeQueueUpload:
+					m := new(peer.QueueUpload)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("queue upload deserialize")
+						return
+					}
+
+					p.Relays.QueueUpload.NotifyCtx(ctx, m)
+
+				case peer.CodeSharedFileListResponse:
+					m := new(peer.SharedFileListResponse)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("shared file list response deserialize")
+						return
+					}
+
+					p.Relays.SharedFileListResponse.NotifyCtx(ctx, m)
+
+				case peer.CodeSharedFileListRequest:
+					m := new(peer.SharedFileListRequest)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("shared file list request deserialize")
+						return
+					}
+
+					p.Relays.SharedFileListRequest.NotifyCtx(ctx, m)
+
+				case peer.CodeTransferRequest:
+					m := new(peer.TransferRequest)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("transfer request deserialize")
+						return
+					}
+
+					p.Relays.TransferRequest.NotifyCtx(ctx, m)
+
+				case peer.CodeTransferResponse:
+					m := new(peer.TransferResponse)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("transfer response deserialize")
+						return
+					}
+
+					p.Relays.TransferResponse.NotifyCtx(ctx, m)
+
+				case peer.CodeUploadDenied:
+					m := new(peer.UploadDenied)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("upload denied deserialize")
+						return
+					}
+
+					p.Relays.UploadDenied.NotifyCtx(ctx, m)
+
+				case peer.CodeUploadFailed:
+					m := new(peer.UploadFailed)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("upload failed deserialize")
+						return
+					}
+
+					p.Relays.UploadFailed.NotifyCtx(ctx, m)
+
+				case peer.CodeUserInfoRequest:
+					m := new(peer.UserInfoRequest)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("deserialize")
+						return
+					}
+
+					p.Relays.UserInfoRequest.NotifyCtx(ctx, m)
+
+				case peer.CodeUserInfoResponse:
+					m := new(peer.UserInfoResponse)
+					err := m.Deserialize(r)
+					if err != nil && !errors.Is(err, io.EOF) {
+						p.log.Warn().Err(err).Msg("user info response deserialize")
+						return
+					}
+
+					p.Relays.UserInfoResponse.NotifyCtx(ctx, m)
+				}
+			}(r, peer.Code(code))
 		}
 	}
 }
@@ -226,225 +370,52 @@ func (p *Peer) readD(ctx context.Context) {
 				continue
 			}
 
-			p.queueD <- map[distributed.Code]io.Reader{distributed.Code(code): r}
-		}
-	}
-}
+			go func(r io.Reader, code distributed.Code) {
+				ctx, cancel := context.WithTimeout(context.Background(), p.config.Timeout)
+				defer cancel()
 
-func (p *Peer) deserialize(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case m := <-p.queue:
-			go func(m map[peer.Code]io.Reader) {
-				for code, r := range m {
-					ctx, cancel := context.WithTimeout(context.Background(), p.config.Timeout)
-					defer cancel()
-
-					switch code {
-					case peer.CodeFileSearchResponse:
-						m := new(peer.FileSearchResponse)
-						err := m.Deserialize(r)
-						if err != nil && !errors.Is(err, io.EOF) {
-							p.log.Warn().Err(err).Msg("file search response deserialize")
-							continue
-						}
-
-						p.Relays.FileSearchResponse.NotifyCtx(ctx, m)
-
-					case peer.CodeFolderContentsRequest:
-						m := new(peer.FolderContentsRequest)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("folder contents request deserialize")
-							continue
-						}
-
-						p.Relays.FolderContentsRequest.NotifyCtx(ctx, m)
-
-					case peer.CodeFolderContentsResponse:
-						m := new(peer.FolderContentsResponse)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("folder contents response deserialize")
-							continue
-						}
-
-						p.Relays.FolderContentsResponse.NotifyCtx(ctx, m)
-
-					case peer.CodePlaceInQueueRequest:
-						m := new(peer.PlaceInQueueRequest)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("place in queue request deserialize")
-							continue
-						}
-
-						p.Relays.PlaceInQueueRequest.NotifyCtx(ctx, m)
-
-					case peer.CodePlaceInQueueResponse:
-						m := new(peer.PlaceInQueueResponse)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("place in queue response deserialize")
-							continue
-						}
-
-						p.Relays.PlaceInQueueResponse.NotifyCtx(ctx, m)
-
-					case peer.CodeQueueUpload:
-						m := new(peer.QueueUpload)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("queue upload deserialize")
-							continue
-						}
-
-						p.Relays.QueueUpload.NotifyCtx(ctx, m)
-
-					case peer.CodeSharedFileListResponse:
-						m := new(peer.SharedFileListResponse)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("shared file list response deserialize")
-							continue
-						}
-
-						p.Relays.SharedFileListResponse.NotifyCtx(ctx, m)
-
-					case peer.CodeSharedFileListRequest:
-						m := new(peer.SharedFileListRequest)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("shared file list request deserialize")
-							continue
-						}
-
-						p.Relays.SharedFileListRequest.NotifyCtx(ctx, m)
-
-					case peer.CodeTransferRequest:
-						m := new(peer.TransferRequest)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("transfer request deserialize")
-							continue
-						}
-
-						p.Relays.TransferRequest.NotifyCtx(ctx, m)
-
-					case peer.CodeTransferResponse:
-						m := new(peer.TransferResponse)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("transfer response deserialize")
-							continue
-						}
-
-						p.Relays.TransferResponse.NotifyCtx(ctx, m)
-
-					case peer.CodeUploadDenied:
-						m := new(peer.UploadDenied)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("upload denied deserialize")
-							continue
-						}
-
-						p.Relays.UploadDenied.NotifyCtx(ctx, m)
-
-					case peer.CodeUploadFailed:
-						m := new(peer.UploadFailed)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("upload failed deserialize")
-							continue
-						}
-
-						p.Relays.UploadFailed.NotifyCtx(ctx, m)
-
-					case peer.CodeUserInfoRequest:
-						m := new(peer.UserInfoRequest)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("deserialize")
-							continue
-						}
-
-						p.Relays.UserInfoRequest.NotifyCtx(ctx, m)
-
-					case peer.CodeUserInfoResponse:
-						m := new(peer.UserInfoResponse)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("user info response deserialize")
-							continue
-						}
-
-						p.Relays.UserInfoResponse.NotifyCtx(ctx, m)
+				switch code {
+				case distributed.CodeBranchLevel:
+					m := new(distributed.BranchLevel)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("branch level deserialize")
+						return
 					}
-				}
-			}(m)
-		}
-	}
-}
 
-func (p *Peer) deserializeD(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
+					p.Relays.Distributed.BranchLevel.NotifyCtx(ctx, m)
 
-		case m := <-p.queueD:
-			go func(m map[distributed.Code]io.Reader) {
-				for code, r := range m {
-					ctx, cancel := context.WithTimeout(context.Background(), p.config.Timeout)
-					defer cancel()
-
-					switch code {
-					case distributed.CodeBranchLevel:
-						m := new(distributed.BranchLevel)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("branch level deserialize")
-							continue
-						}
-
-						p.Relays.Distributed.BranchLevel.NotifyCtx(ctx, m)
-
-					case distributed.CodeBranchRoot:
-						m := new(distributed.BranchRoot)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("branch root deserialize")
-							continue
-						}
-
-						p.Relays.Distributed.BranchRoot.NotifyCtx(ctx, m)
-
-					case distributed.CodeEmbeddedMessage:
-						m := new(distributed.EmbeddedMessage)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("embedded message deserialize")
-							continue
-						}
-
-						p.Relays.Distributed.EmbeddedMessage.NotifyCtx(ctx, m)
-
-					case distributed.CodeSearch:
-						m := new(distributed.Search)
-						err := m.Deserialize(r)
-						if err != nil {
-							p.log.Warn().Err(err).Msg("search deserialize")
-							continue
-						}
-
-						p.Relays.Distributed.Search.NotifyCtx(ctx, m)
+				case distributed.CodeBranchRoot:
+					m := new(distributed.BranchRoot)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("branch root deserialize")
+						return
 					}
+
+					p.Relays.Distributed.BranchRoot.NotifyCtx(ctx, m)
+
+				case distributed.CodeEmbeddedMessage:
+					m := new(distributed.EmbeddedMessage)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("embedded message deserialize")
+						return
+					}
+
+					p.Relays.Distributed.EmbeddedMessage.NotifyCtx(ctx, m)
+
+				case distributed.CodeSearch:
+					m := new(distributed.Search)
+					err := m.Deserialize(r)
+					if err != nil {
+						p.log.Warn().Err(err).Msg("search deserialize")
+						return
+					}
+
+					p.Relays.Distributed.Search.NotifyCtx(ctx, m)
 				}
-			}(m)
+			}(r, distributed.Code(code))
 		}
 	}
 }

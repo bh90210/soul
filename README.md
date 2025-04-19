@@ -92,9 +92,10 @@ If this library was not what you were looking for consider checking out [spotsee
 Shout-out to [slskd](https://github.com/slskd/slskd), it immensely helped with testing the implementation.
 
 # TODO
-- [ ] finish respond
-- [ ] finish upload
-- [ ] finish directory/folder peer responses
-- [ ] client integration tests (login-search-download -> login-respond to search-upload, all server messages)
-- [ ] search code for outstanding TODOs
-- [ ] release v1.2.0
+- [ ] Finish upload.
+- [ ] Finish directory/folder peer responses.
+- [ ] Client integration tests (login-search-download -> login-respond to search-upload, all server messages.)
+- [ ] Search code for outstanding TODOs.
+- [ ] Release v1.2.0.
+- [ ] Rate limits for peers: (re-)downloads, requests, connections.
+- [ ] Release v1.2.1.

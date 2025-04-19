@@ -34,12 +34,9 @@ type Client struct {
 	mu     sync.RWMutex
 	// SoulSeek network connection.
 	conn net.Conn
-	// listener net.Listener for incoming peer connections.
+	// net.Listener for incoming peer connections.
 	listener           net.Listener
 	listenerObfuscated net.Listener
-	// queue is filled by reading the conn. It is used to deserialize messages.
-	// It is a channel of maps where the key is the server message code and the value is the message.
-	queue chan map[server.Code]io.Reader
 
 	dialling bool
 	wg       sync.WaitGroup
@@ -80,8 +77,10 @@ type Config struct {
 	MaxChildren        int
 	Description        string
 	Picture            []byte
+	Library            string
 }
 
+// DefaultConfig returns a default configuration for the client.
 func DefaultConfig() *Config {
 	return &Config{
 		SoulSeekAddress:    "server.slsknet.org",
@@ -117,21 +116,19 @@ func New(conf *Config) (*Client, error) {
 	c.log = c.log.With().Str("username", c.config.Username).Logger()
 
 	// Init all necessary maps and channels.
-	c.queue = make(chan map[server.Code]io.Reader)
 	c.Firewall = make(chan *PierceFirewall)
 	c.Init = make(chan *PeerInit)
 
 	c.relaysInit()
 
-	go c.deserialize()
-
 	return c, nil
 }
 
+// Dial connects to the server and starts listening for incoming peer connections.
 func (c *Client) Dial(ctx context.Context, cancel context.CancelFunc) error {
 	c.mu.RLock()
 	if c.cancel != nil {
-		go c.cancel()
+		c.cancel()
 	}
 	c.mu.RUnlock()
 
@@ -183,6 +180,7 @@ func (c *Client) Dial(ctx context.Context, cancel context.CancelFunc) error {
 	return nil
 }
 
+// Conn returns the current connection to the server.
 func (c *Client) Conn() net.Conn {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -251,28 +249,6 @@ func (c *Client) dial() error {
 	c.log.Debug().Msg("dialling to server successful once")
 
 	return nil
-}
-
-// read messages from the server continuously.
-func (c *Client) read(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		default:
-			c.mu.RLock()
-			r, _, code, err := server.Read(c.conn)
-			c.mu.RUnlock()
-			if err != nil {
-				c.log.Err(err).Msg("server read")
-				continue
-			}
-
-			// Send the message to the deserialization queue.
-			c.queue <- map[server.Code]io.Reader{code: r}
-		}
-	}
 }
 
 func (c *Client) listenObfuscated(ctx context.Context) {
@@ -393,11 +369,25 @@ func (c *Client) listen(ctx context.Context) {
 	}
 }
 
-// deserialize reads messages from the deserialization queue. If successful, it
-// sends a notification to all potential listeners with a cancellation context.
-func (c *Client) deserialize() {
+// read messages from the server continuously.
+func (c *Client) read(ctx context.Context) {
+	c.mu.RLock()
+	conn := c.conn
+	c.mu.RUnlock()
+
 	for {
-		for code, r := range <-c.queue {
+		select {
+		case <-ctx.Done():
+			return
+
+		default:
+			r, _, code, err := server.Read(conn)
+			if err != nil {
+				c.log.Err(err).Msg("server read")
+				continue
+			}
+
+			// Send the message to the deserialization queue.
 			go func(code server.Code, r io.Reader) {
 				ctx, cancel := context.WithTimeout(context.Background(), c.config.Timeout)
 				defer cancel()

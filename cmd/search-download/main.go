@@ -5,7 +5,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -14,30 +13,40 @@ import (
 	"github.com/bh90210/soul/client"
 	"github.com/bh90210/soul/peer"
 	"github.com/gosuri/uilive"
+	"github.com/ipsn/go-adorable"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	search := os.Args[1:]
-	fmt.Println(search)
 
 	config := &client.Config{
-		Username:          "ppoooopiko",
-		Password:          "ghfyu5eu6yt",
-		OwnPort:           2234,
-		OwnPortObfuscated: 2235,
-		SoulSeekAddress:   "server.slsknet.org",
-		SoulSeekPort:      2242,
-		SharedFolders:     100,
-		SharedFiles:       1000,
-		LogLevel:          zerolog.InfoLevel,
-		Timeout:           60 * time.Second,
-		LoginTimeout:      10 * time.Second,
-		DownloadFolder:    os.TempDir(),
-		MaxPeers:          100,
-		AcceptChildren:    true,
+		Username: "te",
+		// Username:          gonanoid.MustGenerate("soulseek", 7),
+		Password: "password",
+		// Password:          gonanoid.MustGenerate("0123456789qwertyuiop", 10),
+		OwnPort:           2235,
+		OwnPortObfuscated: 2236,
+		SoulSeekAddress:   "localhost",
+		// SoulSeekAddress: "server.slsknet.org",
+		SoulSeekPort:       2242,
+		SharedFolders:      100,
+		SharedFiles:        1000,
+		LogLevel:           zerolog.DebugLevel,
+		Timeout:            60 * time.Second,
+		LoginTimeout:       10 * time.Second,
+		DownloadFolder:     os.TempDir(),
+		MaxFileConnections: 5,
+		MaxPeers:           100,
+		AcceptChildren:     true,
+		Picture:            adorable.Random(),
+		Library:            os.Getenv("SOUL_LIBRARY"),
+		Description:        "soul client",
 	}
+
+	// TODO: delete this.
+	config.LoginTimeout = time.Second
 
 	// Setup logger.
 	log.Logger = log.Level(config.LogLevel)
@@ -60,12 +69,61 @@ func main() {
 
 	// We need the state to login search and download.
 	state := client.NewState(c)
+
 	err = state.Login(ctx)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("login")
 	}
 
 	logger.Info().Str("username", config.Username).Msg("logged in")
+
+	// Listen for incoming search requests.
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			case request := <-state.Incoming:
+				ctx, _ := context.WithTimeout(ctx, 5*time.Minute) // TODO: timeout from new config field?
+				f, err := os.OpenFile(os.Getenv("SOUL_TESTFILE"), os.O_RDONLY, 0644)
+				if err != nil {
+					logger.Error().Err(err).Msg("read file")
+					continue
+				}
+
+				info, err := f.Stat()
+				if err != nil {
+					logger.Error().Err(err).Msg("stat file")
+					continue
+				}
+
+				files := []*client.File{
+					{
+						Username: request.Username,
+						Token:    request.Token,
+						Queue:    0,
+						File: &peer.File{
+							Name:       f.Name(),
+							Size:       uint64(info.Size()),
+							Extension:  "mp3",
+							Attributes: []peer.Attribute{{Code: 1}},
+						},
+					},
+				}
+
+				err = state.Respond(ctx, files)
+				if err != nil {
+					logger.Error().Err(err).Msg("respond")
+				}
+			}
+		}
+	}()
+
+	// TODO: delete this.
+	// if len(search) == 0 {
+	select {}
+	// }
 
 	// Our search token.
 	token := soul.NewToken()
