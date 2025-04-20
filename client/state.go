@@ -611,7 +611,7 @@ var ErrNoToken = errors.New("no token")
 
 // Respond sends a response to the search request.
 func (s *State) Respond(ctx context.Context, files []*File) error {
-	s.log.Debug().Any("files", files).Msg("respond")
+	s.log.Debug().Any("files", files).Msg("responding")
 
 	if len(files) == 0 {
 		return ErrNoFiles
@@ -634,7 +634,7 @@ func (s *State) Respond(ctx context.Context, files []*File) error {
 
 	conn, obfuscated, err := s.connect(ctx, username, token)
 	if err != nil {
-		s.log.Warn().Err(err).Msg("connect")
+		s.log.Warn().Err(err).Msg("respond connect")
 		return err
 	}
 
@@ -656,18 +656,7 @@ func (s *State) Respond(ctx context.Context, files []*File) error {
 				Queue:    0,
 			}, obfuscated)
 			if err != nil {
-				// If we fail because the connection is closed, we try to reconnect.
-				if strings.Contains(err.Error(), "use of closed network connection") {
-					// We try to directly reconnect to peer.
-					conn, obfuscated, err = s.connect(ctx, username, token)
-					if err != nil {
-						s.log.Warn().Err(err).Msg("reconnect")
-					}
-
-					continue
-				} else {
-					return fmt.Errorf("file search response: %w", err)
-				}
+				return fmt.Errorf("file search response: %w", err)
 			}
 
 			return nil
@@ -675,6 +664,7 @@ func (s *State) Respond(ctx context.Context, files []*File) error {
 	}
 }
 
+// TODO: polish it (duplicate code etc.)
 func (s *State) connect(ctx context.Context, username string, token soul.Token) (net.Conn, bool, error) {
 	// Search for peer.
 	s.mu.RLock()
@@ -791,6 +781,9 @@ func (s *State) connect(ctx context.Context, username string, token soul.Token) 
 
 	// TODO: finish checking if connection is active and retrying for {}.
 	conn, obfuscated := p.Conn(peer.ConnectionType)
+	// This should not happen at this stage.
+	// Nevertheless, we need to check if the connection is nil.
+	// TODO: if nil try reconnecting to peer.
 	if conn == nil {
 		return nil, false, errors.New("connection nill")
 	}
@@ -798,17 +791,89 @@ func (s *State) connect(ctx context.Context, username string, token soul.Token) 
 	ui := p.Relays.UserInfoResponse.Listener(1)
 	defer ui.Close()
 
-	_, err := peer.Write(conn, &peer.UserInfoRequest{}, obfuscated)
-	if err != nil {
-		s.log.Warn().Err(err).Msg("user info request")
-		return nil, false, err
+	for {
+		s.log.Info().Msg("waiting for user info response")
+		_, err := peer.Write(conn, &peer.UserInfoRequest{}, obfuscated)
+		if err != nil {
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				s.log.Warn().Msg("connection closed, trying to reconnect")
+				// We try to directly reconnect to peer.
+				// Open a GetPeerAddress listener.
+				gpa := s.client.Relays.GetPeerAddress.Listener(1)
+				defer gpa.Close()
+
+				// Let the server know the username we need the address for.
+				_, err := server.Write(s.client.Conn(), &server.GetPeerAddress{Username: username})
+				if err != nil {
+					return nil, false, err
+				}
+
+				// The listener may receive multiple addresses,
+				// so we need to find the one that matches the username.
+				var address *server.GetPeerAddress
+				for {
+					s.log.Info().Msg("waiting for peer address")
+
+					var found bool
+					select {
+					case <-ctx.Done():
+						return nil, false, errors.New("context done")
+
+					case a := <-gpa.Ch():
+						if a.Username != username {
+							continue
+						}
+
+						address = a
+						found = true
+						break
+					}
+
+					if found {
+						break
+					}
+				}
+
+				var port int
+				if address.ObfuscatedPort != 0 {
+					port = address.ObfuscatedPort
+				} else {
+					port = address.Port
+				}
+
+				s.log.Debug().Msg("peer address found")
+
+				conn, err = net.Dial("tcp", fmt.Sprintf("%s:%v", address.IP.String(), port))
+				if err != nil {
+					s.log.Warn().Err(err).Msg("respond direct connection")
+					return nil, false, err
+				}
+
+				s.initializers(ctx, peer.ConnectionType, p, conn, address.ObfuscatedPort != 0, s.log)
+
+				_, err = peer.Write(conn, &peer.PeerInit{
+					Username:       s.client.config.Username,
+					ConnectionType: peer.ConnectionType,
+				}, address.ObfuscatedPort != 0)
+				if err != nil {
+					return nil, false, err
+				}
+			} else {
+				return nil, false, fmt.Errorf("file search response: %w", err)
+			}
+		} else {
+			break
+		}
 	}
+
+	s.log.Debug().Msg("user info response sent, now waiting for response")
 
 	select {
 	case <-ctx.Done():
 		return nil, false, errors.New("context done")
 
 	case <-ui.Ch():
+		s.log.Debug().Msg("user info response received")
 	}
 
 	return conn, obfuscated, nil
@@ -1492,7 +1557,7 @@ func (s *State) distributed(m *server.PossibleParents) {
 }
 
 func (s *State) peerRequests(ctx context.Context, p *Peer, wg *sync.WaitGroup) {
-	prl := s.log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Str("peer request", p.username).Logger()
+	prl := s.log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Str("username", p.username).Logger()
 
 	fileSearch := p.Relays.FileSearchResponse.Listener(1)
 	defer fileSearch.Close()
@@ -1562,13 +1627,15 @@ func (s *State) peerRequests(ctx context.Context, p *Peer, wg *sync.WaitGroup) {
 				Peer:     p,
 			}
 
-		case sfl := <-sfl.Ch():
-			prl.Debug().Any("sfl", sfl).Msg("shared file list request")
+			prl.Debug().Any("qu", qu).Msg("queue upload request sent")
+
+		case <-sfl.Ch():
+			prl.Debug().Msg("shared file list request")
 
 			conn, obfuscated := p.Conn(peer.ConnectionType)
 			if conn == nil {
 				prl.Warn().Msg("no connection")
-				return
+				continue
 			}
 
 			s.mu.RLock()
@@ -1576,7 +1643,7 @@ func (s *State) peerRequests(ctx context.Context, p *Peer, wg *sync.WaitGroup) {
 			s.mu.RUnlock()
 			if err != nil {
 				prl.Warn().Err(err).Msg("shared file list response")
-				return
+				continue
 			}
 
 			prl.Debug().Msg("shared file list response sent")
@@ -1591,7 +1658,7 @@ func (s *State) peerRequests(ctx context.Context, p *Peer, wg *sync.WaitGroup) {
 			conn, obfuscated := p.Conn(peer.ConnectionType)
 			if conn == nil {
 				prl.Warn().Msg("no connection")
-				return
+				continue
 			}
 
 			_, err := peer.Write(conn, &peer.UserInfoResponse{
@@ -1603,13 +1670,43 @@ func (s *State) peerRequests(ctx context.Context, p *Peer, wg *sync.WaitGroup) {
 			}, obfuscated)
 			if err != nil {
 				prl.Warn().Err(err).Msg("user info response")
-				return
+				continue
 			}
 
 			prl.Debug().Msg("user info response sent")
 
 		case fc := <-fc.Ch():
-			prl.Debug().Any("fc", fc).Msg("folder contents request") // TODO: finish me.
+			prl.Debug().Any("fc", fc).Msg("folder contents request")
+
+			conn, obfuscated := p.Conn(peer.ConnectionType)
+			if conn == nil {
+				prl.Warn().Any("fc", fc).Msg("no connection")
+				continue
+			}
+
+			var folders []peer.Directory
+			s.mu.RLock()
+			for _, directory := range s.shared.Directories {
+				if strings.Contains(directory.Name, fc.Folder) {
+					folders = append(folders, peer.Directory{
+						Name:  directory.Name,
+						Files: directory.Files,
+					})
+				}
+			}
+			s.mu.RUnlock()
+
+			_, err := peer.Write(conn, &peer.FolderContentsResponse{
+				Token:   fc.Token,
+				Folder:  fc.Folder,
+				Folders: folders,
+			}, obfuscated)
+			if err != nil {
+				prl.Warn().Err(err).Any("fc", fc).Msg("folder contents response")
+				continue
+			}
+
+			prl.Debug().Any("fc", fc).Msg("folder contents response sent")
 
 		case piq := <-piq.Ch():
 			prl.Debug().Any("piq", piq).Msg("place in queue request")
@@ -1632,7 +1729,7 @@ func (s *State) peerRequests(ctx context.Context, p *Peer, wg *sync.WaitGroup) {
 							Place:    uint32(place),
 						}, obfuscated)
 						if err != nil {
-							prl.Warn().Err(err).Msg("place in queue response")
+							prl.Warn().Err(err).Any("piq", piq).Msg("place in queue response")
 							return err
 						}
 

@@ -18,13 +18,7 @@ const CodeFolderContentsResponse Code = 37
 type FolderContentsResponse struct {
 	Token   soul.Token
 	Folder  string
-	Folders []Folder
-}
-
-// Folder represents a folder and its contents.
-type Folder struct {
-	Directory string
-	Files     []File
+	Folders []Directory
 }
 
 // Serialize accepts a FolderContentsResponse and returns a message packed as a byte slice.
@@ -53,7 +47,7 @@ func (f *FolderContentsResponse) Serialize(message *FolderContentsResponse) ([]b
 	}
 
 	for _, f := range message.Folders {
-		err = internal.WriteString(zw, f.Directory)
+		err = internal.WriteString(zw, f.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -151,9 +145,9 @@ func (f *FolderContentsResponse) Deserialize(reader io.Reader) error {
 	}
 
 	for range int(folders) {
-		var folder Folder
+		var folder Directory
 
-		folder.Directory, err = internal.ReadString(zr)
+		folder.Name, err = internal.ReadString(zr)
 		if err != nil {
 			return err
 		}

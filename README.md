@@ -89,7 +89,7 @@ Fork of [goose](https://github.com/a-cordier/goose). Thanks to `a-cordier` for s
 
 If this library was not what you were looking for consider checking out [spotseek](https://github.com/boristopalov/spotseek).
 
-Shout-out to [slskd](https://github.com/slskd/slskd), it immensely helped with testing the implementation.
+Shout-out to [slskd](https://github.com/slskd/slskd), it immensely helped with testing the peer implementation.
 
 # TODO
 - [ ] Finish upload.

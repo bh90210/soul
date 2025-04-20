@@ -8,6 +8,7 @@ require (
 	github.com/charlievieth/fastwalk v1.0.10
 	github.com/gosuri/uilive v0.0.4
 	github.com/ipsn/go-adorable v1.0.0
+	github.com/joho/godotenv v1.5.1
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.10.0

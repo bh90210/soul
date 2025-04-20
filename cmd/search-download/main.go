@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,12 +15,18 @@ import (
 	"github.com/bh90210/soul/peer"
 	"github.com/gosuri/uilive"
 	"github.com/ipsn/go-adorable"
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	search := os.Args[1:]
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal().Err(err).Msg("load .env")
+	}
 
 	config := &client.Config{
 		Username: "te",
@@ -106,7 +113,7 @@ func main() {
 						File: &peer.File{
 							Name:       f.Name(),
 							Size:       uint64(info.Size()),
-							Extension:  "mp3",
+							Extension:  filepath.Ext(f.Name()),
 							Attributes: []peer.Attribute{{Code: 1}},
 						},
 					},
